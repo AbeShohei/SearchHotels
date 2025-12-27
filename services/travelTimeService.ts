@@ -223,8 +223,3 @@ const calculateArrivalTime = (departureTime: string, minutes: number): string =>
     const arrM = totalMinutes % 60;
     return `${arrH.toString().padStart(2, '0')}:${arrM.toString().padStart(2, '0')}`;
 };
-
-export const hasTravelTimeData = (lineId: string): boolean => {
-    return travelTimeCache.has(lineId);
-};
-

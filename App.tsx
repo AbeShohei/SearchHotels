@@ -2,8 +2,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import * as odpt from './services/odptService';
 import { searchHotels } from './services/rakutenService';
 
-
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 import { getFaresFromStation } from './services/fareService';
 import { getTravelTime, getFirstLastTrains, FirstLastTrainInfo } from './services/travelTimeService';
 import { initializeNetwork, findRoutesToDestination, isNetworkInitialized, RouteResult } from './services/networkService';
@@ -12,7 +10,7 @@ import { ResultCard } from './components/ResultCard';
 import { DateRangePicker } from './components/DateRangePicker';
 import { METRO_LINES, MetroLine } from './constants';
 
-// const VALUE_OF_TIME_PER_MINUTE = 30; // Deprecated
+
 
 // Helper to get line color
 const lineMap = new Map<string, MetroLine>();
@@ -23,24 +21,7 @@ const getLineColor = (lineId?: string) => {
   return lineMap.get(lineId)?.color || '#cccccc';
 };
 
-// 路線の方向IDを取得 (簡易版: ネットワーク探索結果には使わないが、終電検索で必要)
-// ※ 乗り換えがある場合、終電検索は複雑になるため、今回は「直通」の場合のみ終電を表示するか、
-// あるいはメインの移動区間（最も時間が長い区間）の終電を表示するか。
-// ユーザー要望「乗り換えを含めて検索」に対して「始発・終電」はどうするか？
-// 乗り換えルートの終電検索は非常に難しい（乗り継ぎ検索が必要）。
-// とりあえず、「直通」の場合は以前と同じロジック、「乗り換え」の場合は「終電情報なし」とするか、
-// 「詳細検索」として諦めるか。
-// ここでは、直通ルート（transfers === 0）の場合のみ終電情報を表示する方針にする。
 
-const getRailDirection = (lineId: string, fromStationId: string, toStationId: string): string => {
-  // 今回はApp.tsx側で方向判定ロジックを持たず、travelTimeService等に任せたいが、
-  // 以前のロジックを流用するなら、Station情報が必要。
-  // GroupedStationには stationCountFromShinjuku がないため、判定が難しい。
-  // 暫定措置: 以前の station配列がないため、このロジックは使えない！
-  // -> 終電情報の表示は一旦保留するか、または「時刻表API」から直接探す必要がある。
-  // 今回は「検索機能の強化」が優先なので、終電表示は「直通かつデータが取れる場合」に限定する。
-  return '';
-};
 
 interface ExtendedResult extends ScoredResult {
   trainSchedule?: FirstLastTrainInfo;
@@ -393,8 +374,7 @@ const App: React.FC = () => {
         {!isNetworkLoaded ? (
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-500">ネットワークデータを構築中...</p>
-            <p className="text-xs text-gray-400 mt-2">初回のみ数秒かかります</p>
+            <p className="text-gray-500">路線データを取得中...</p>
           </div>
         ) : (
           <>

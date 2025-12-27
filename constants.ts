@@ -1,4 +1,4 @@
-import { Destination } from './types';
+
 
 // ODPT Constants
 export const ODPT_API_URL = "https://api.odpt.org/api/v4";

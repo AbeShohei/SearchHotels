@@ -118,13 +118,6 @@ export const getAllMetroStations = async (): Promise<Map<string, StationDataResp
   return results;
 };
 
-// Backward compatibility
-export const getChuoLineStations = async () => {
-  return getLineStations(METRO_LINES[0]);
-};
-
-export const getMetroStations = getChuoLineStations;
-
 /**
  * 全路線の駅を取得し、駅名でグループ化して返す
  */

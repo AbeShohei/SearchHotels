@@ -44,12 +44,6 @@ export interface ScoredResult extends Station {
   numberOfStops?: number;
 }
 
-export interface Destination {
-  id: string;
-  name: string;
-  nearestStationId: string;
-  minutesFromStation: number;
-}
 
 // ODPT Raw Data Types
 export interface OdptStation {

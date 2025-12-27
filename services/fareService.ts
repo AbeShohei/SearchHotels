@@ -113,43 +113,4 @@ export const getFaresFromStation = async (fromStationId: string): Promise<Map<st
     return resultMap;
 };
 
-/**
- * 2駅間の運賃を取得（IC運賃と切符運賃）
- */
-export const getBothFares = (
-    fromStationId: string,
-    toStationId: string
-): { icFare: number; ticketFare: number } => {
-    if (fromStationId === toStationId) return { icFare: 0, ticketFare: 0 };
-
-    const cacheKey1 = `${fromStationId}-${toStationId}`;
-    const cacheKey2 = `${toStationId}-${fromStationId}`;
-
-    if (fareCache.has(cacheKey1)) {
-        return fareCache.get(cacheKey1)!;
-    }
-    if (fareCache.has(cacheKey2)) {
-        return fareCache.get(cacheKey2)!;
-    }
-
-    // フォールバック（メトロの最低運賃）
-    return { icFare: 180, ticketFare: 180 };
-};
-
-/**
- * IC運賃のみ取得（互換性用）
- */
-export const getFareBetweenStations = (
-    fromStationId: string,
-    toStationId: string
-): number => {
-    return getBothFares(fromStationId, toStationId).icFare;
-};
-
 export const getFareCacheSize = (): number => fareCache.size;
-
-export const calculateTravelTimeByStationCount = (stationCount: number): number => {
-    return Math.ceil(stationCount * 2); // メトロは約2分/駅
-};
-
-export const isFareLoaded = (): boolean => isFareDataLoaded;
