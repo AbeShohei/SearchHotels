@@ -35,8 +35,8 @@ export const searchHotels = async (
         return [];
     }
 
-    // 検索半径(km)。ユーザー要望の1km -> ヒット率向上のため3kmに拡大
-    const searchRadius = 3;
+    // 検索半径(km)
+    const searchRadius = 1;
 
     // 楽天トラベルAPIは秒間リクエスト制限があるため注意が必要
     const url = `${RAKUTEN_API_URL}?applicationId=${RAKUTEN_APP_ID}&format=json&checkinDate=${checkinDate}&checkoutDate=${checkoutDate}&latitude=${lat}&longitude=${lng}&searchRadius=${searchRadius}&adultNum=${adultNum}&roomNum=${roomNum}&datumType=1`;
@@ -117,7 +117,9 @@ export const searchHotels = async (
                 stationId: "",
                 hotelUrl: basicInfo.hotelInformationUrl,
                 imageUrl: basicInfo.hotelImageUrl, // ここも APIによっては thumbnail の場合があるが基本はこれ
-                reviewAverage: basicInfo.reviewAverage
+                reviewAverage: basicInfo.reviewAverage,
+                hotelLat: basicInfo.latitude,
+                hotelLng: basicInfo.longitude
             };
         }).filter((h: any) => h).sort((a: any, b: any) => a.price - b.price);
 

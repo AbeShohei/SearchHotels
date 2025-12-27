@@ -17,11 +17,13 @@ interface ResultCardProps {
   selectedDate: string;
   isCheapest: boolean;
   isOptimal: boolean;
+  isHighestRated: boolean;
   ticketFare?: number;
   numberOfStops?: number;
   adultCount: number;
   nightCount: number;
   roomCount: number;
+  sortMode: 'price' | 'review';
 }
 
 export const ResultCard: React.FC<ResultCardProps> = ({
@@ -31,11 +33,13 @@ export const ResultCard: React.FC<ResultCardProps> = ({
   selectedDate,
   isCheapest,
   isOptimal,
+  isHighestRated,
   ticketFare,
   numberOfStops,
   adultCount,
   nightCount,
-  roomCount
+  roomCount,
+  sortMode
 }) => {
   // Total costs
   const totalHotelPrice = result.hotel.price;
@@ -66,10 +70,15 @@ export const ResultCard: React.FC<ResultCardProps> = ({
   })() : '';
 
   return (
-    <div className={`relative p-6 rounded-xl border transition-all duration-300 ${isOptimal
-      ? 'bg-white border-orange-400 shadow-lg scale-[1.02] z-10'
-      : 'bg-white border-gray-200 hover:shadow-md'
-      }`}>
+    <a
+      href={result.hotel.hotelUrl || '#'}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`relative p-6 rounded-xl border transition-all duration-300 block cursor-pointer ${isOptimal
+        ? 'bg-white border-orange-400 shadow-lg scale-[1.02] z-10 hover:scale-[1.03]'
+        : 'bg-white border-gray-200 hover:shadow-lg hover:border-gray-300'
+        }`}
+    >
 
       {/* Badges */}
       <div className="absolute -top-3 -right-3 flex gap-2">
@@ -78,9 +87,14 @@ export const ResultCard: React.FC<ResultCardProps> = ({
             最適
           </div>
         )}
-        {isCheapest && (
+        {isCheapest && sortMode === 'price' && (
           <div className="bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm">
             最安
+          </div>
+        )}
+        {isHighestRated && sortMode === 'review' && (
+          <div className="bg-yellow-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm">
+            最高評価
           </div>
         )}
       </div>
@@ -92,15 +106,18 @@ export const ResultCard: React.FC<ResultCardProps> = ({
             #{rank}
           </div>
           <div className="min-w-0 flex-1">
-            <h3 className="text-xl font-bold text-gray-800 truncate">{result.name} {result.romaji && <span className="text-sm font-normal text-gray-500">({result.romaji})</span>}</h3>
             {result.hotel.hotelUrl ? (
-              <a href={result.hotel.hotelUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline truncate block">
+              <span className="text-xl font-bold text-gray-800 truncate block">
                 {result.hotel.hotelName}
-                {result.hotel.reviewAverage && <span className="ml-2 text-orange-500">★{result.hotel.reviewAverage}</span>}
-              </a>
+                {result.hotel.reviewAverage && <span className="ml-2 text-orange-500 text-lg">★{result.hotel.reviewAverage}</span>}
+              </span>
             ) : (
-              <p className="text-sm text-gray-500 truncate">{result.hotel.hotelName}</p>
+              <h3 className="text-xl font-bold text-gray-800 truncate">{result.hotel.hotelName}</h3>
             )}
+            <p className="text-sm text-gray-700">
+              {result.name}駅
+              {result.walkTime > 0 && <span className="text-gray-500 ml-1">徒歩{result.walkTime}分</span>}
+            </p>
             {result.hotel.hotelImageUrl && (
               <img src={result.hotel.hotelImageUrl} alt={result.hotel.hotelName} className="mt-2 h-32 w-full object-cover rounded-md" />
             )}
@@ -124,36 +141,59 @@ export const ResultCard: React.FC<ResultCardProps> = ({
 
         {/* Savings Info */}
         <div className="text-right shrink-0">
-          {savingsPerPerson !== undefined ? (
+          {sortMode === 'review' ? (
+            // レビューモード: 評価差を表示
             <>
-              {totalSavings !== undefined && totalSavings > 0 ? (
-                <>
-                  <div className="text-2xl font-bold text-red-500 flex flex-col items-end leading-none">
-                    <span>{totalSavings.toLocaleString()} <span className="text-sm font-normal text-gray-500">円</span></span>
-                    <span className="text-xs text-red-500 font-bold block mt-0.5">お得！</span>
-                    <span className="text-[10px] text-red-400 mt-0.5">1名あたり {savingsPerPerson?.toLocaleString()}円 お得</span>
+              {result.hotel.reviewAverage ? (
+                <div className="flex flex-col items-end leading-none">
+                  <div className="text-2xl font-bold text-orange-500">
+                    ★{result.hotel.reviewAverage.toFixed(2)}
                   </div>
-                </>
-              ) : totalSavings !== undefined && totalSavings < 0 ? (
-                <>
-                  <div className="text-lg font-bold text-gray-500 flex flex-col items-end leading-none">
-                    <span>{Math.abs(totalSavings).toLocaleString()} <span className="text-sm font-normal text-gray-500">円</span></span>
-                    <span className="text-xs text-gray-500 block mt-0.5">割高</span>
-                    <span className="text-[10px] text-gray-400 mt-0.5">1名あたり {Math.abs(savingsPerPerson!).toLocaleString()}円 割高</span>
-                  </div>
-                </>
+                  {totalSavings !== undefined && totalSavings > 0 ? (
+                    <span className="text-xs text-green-600 font-bold mt-0.5">+{(totalSavings / 100).toFixed(2)} ★</span>
+                  ) : totalSavings !== undefined && totalSavings < 0 ? (
+                    <span className="text-xs text-gray-400 mt-0.5">{(totalSavings / 100).toFixed(2)} ★</span>
+                  ) : (
+                    <span className="text-xs text-gray-500 mt-0.5">基準地</span>
+                  )}
+                </div>
               ) : (
-                <>
-                  <div className="text-lg font-bold text-gray-500">
-                    基準地
-                  </div>
-                </>
+                <div className="text-lg font-bold text-gray-400">レビューなし</div>
               )}
             </>
           ) : (
-            <div className="text-lg font-bold text-gray-400">
-              -
-            </div>
+            // 料金モード: お得額を表示
+            savingsPerPerson !== undefined ? (
+              <>
+                {totalSavings !== undefined && totalSavings > 0 ? (
+                  <>
+                    <div className="text-2xl font-bold text-red-500 flex flex-col items-end leading-none">
+                      <span>{totalSavings.toLocaleString()} <span className="text-sm font-normal text-gray-500">円</span></span>
+                      <span className="text-xs text-red-500 font-bold block mt-0.5">お得！</span>
+                      <span className="text-[10px] text-red-400 mt-0.5">1名あたり {savingsPerPerson?.toLocaleString()}円 お得</span>
+                    </div>
+                  </>
+                ) : totalSavings !== undefined && totalSavings < 0 ? (
+                  <>
+                    <div className="text-lg font-bold text-gray-500 flex flex-col items-end leading-none">
+                      <span>{Math.abs(totalSavings).toLocaleString()} <span className="text-sm font-normal text-gray-500">円</span></span>
+                      <span className="text-xs text-gray-500 block mt-0.5">割高</span>
+                      <span className="text-[10px] text-gray-400 mt-0.5">1名あたり {Math.abs(savingsPerPerson!).toLocaleString()}円 割高</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="text-lg font-bold text-gray-500">
+                      基準地
+                    </div>
+                  </>
+                )}
+              </>
+            ) : (
+              <div className="text-lg font-bold text-gray-400">
+                -
+              </div>
+            )
           )}
         </div>
       </div>
@@ -191,7 +231,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({
         <div className="flex-1 w-full text-xs text-gray-500">
           <div className="mb-2">
             <span className="font-medium text-gray-700">移動:</span>
-            <span className="ml-1">{result.trainTime}分</span>
+            <span className="ml-1">🚃{result.trainTime}分</span>
             {numberOfStops !== undefined && (
               <span className="ml-2 text-gray-500 text-[10px]">
                 ({numberOfStops}駅)
@@ -242,6 +282,6 @@ export const ResultCard: React.FC<ResultCardProps> = ({
           </p>
         </div>
       </div>
-    </div>
+    </a>
   );
 };

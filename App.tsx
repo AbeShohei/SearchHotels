@@ -5,6 +5,7 @@ import { searchHotels } from './services/rakutenService';
 import { getFaresFromStation } from './services/fareService';
 import { getTravelTime, getFirstLastTrains, FirstLastTrainInfo } from './services/travelTimeService';
 import { initializeNetwork, findRoutesToDestination, isNetworkInitialized, RouteResult } from './services/networkService';
+import { getWalkingTimeToStation } from './services/walkingService';
 import { ScoredResult, Station, GroupedStation } from './types';
 import { ResultCard } from './components/ResultCard';
 import { DateRangePicker } from './components/DateRangePicker';
@@ -62,6 +63,7 @@ const App: React.FC = () => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [sortMode, setSortMode] = useState<'price' | 'review'>('price');
 
   useEffect(() => {
     const handleScroll = () => {
@@ -93,6 +95,34 @@ const App: React.FC = () => {
     };
     init();
   }, []);
+
+  // Re-sort when sortMode changes
+  useEffect(() => {
+    if (results.length === 0) return;
+
+    const sorted = [...results];
+    if (sortMode === 'review') {
+      sorted.sort((a, b) => (b.hotel.reviewAverage || 0) - (a.hotel.reviewAverage || 0));
+      // 目的地駅の最高評価を基準に
+      const destHotels = sorted.filter(r => r.name === stationInput);
+      const bestDestReview = destHotels.length > 0
+        ? Math.max(...destHotels.map(r => r.hotel.reviewAverage || 0))
+        : (sorted[0]?.hotel.reviewAverage || 0);
+      sorted.forEach(r => {
+        r.savings = ((r.hotel.reviewAverage || 0) - bestDestReview) * 100;
+      });
+    } else {
+      sorted.sort((a, b) => a.totalCost - b.totalCost);
+      // 目的地駅のコストを基準に
+      const destResult = sorted.find(r => r.name === stationInput);
+      if (destResult) {
+        sorted.forEach(r => {
+          r.savings = destResult.totalCost - r.totalCost;
+        });
+      }
+    }
+    setResults(sorted);
+  }, [sortMode]);
 
   // Set default selection when stations are loaded
   useEffect(() => {
@@ -216,8 +246,9 @@ const App: React.FC = () => {
           continue;
         }
 
-        // ヒットしたすべてのホテルごとに結果を作成する (各駅最大5件まで)
-        const targetHotels = hotels.slice(0, 5);
+        // ヒットしたすべてのホテルごとに結果を作成する
+        // レビューモードでは全件表示、料金モードでは各駅最大5件
+        const targetHotels = sortMode === 'review' ? hotels : hotels.slice(0, 5);
         for (let i = 0; i < targetHotels.length; i++) {
           const h = targetHotels[i];
           const hotel = {
@@ -294,20 +325,27 @@ const App: React.FC = () => {
             }
           }
 
+          // ホテルから駅までの徒歩時間を計算
+          let walkTime = 0;
+          if (h.hotelLat && h.hotelLng && lat && lng) {
+            const walkResult = await getWalkingTimeToStation(h.hotelLat, h.hotelLng, lat, lng);
+            walkTime = walkResult || 0;
+          }
+
           tempResults.push({
             id: `${route.stationId}_${i}`, // ユニークIDにするためにインデックス不可
             name: name,
             romaji: '',
             kana: '',
-            lat: 0,
-            lng: 0,
+            lat: h.hotelLat || 0,
+            lng: h.hotelLng || 0,
             stationCountFromShinjuku: 0,
             hotel,
             transportCost: icFare,
             icFare,
             ticketFare,
             trainTime: route.totalTime,
-            walkTime: 0,
+            walkTime,
             transfers: route.transfers,
             lines: route.lines,
             totalCost,
@@ -342,8 +380,26 @@ const App: React.FC = () => {
       });
     }
 
-    // コストが安い順にソート (Total Score = Total Cost now)
-    tempResults.sort((a, b) => a.totalCost - b.totalCost);
+    // ソートモードに応じてソート
+    if (sortMode === 'review') {
+      // レビュー順: 評価が高い順にソート
+      tempResults.sort((a, b) => (b.hotel.reviewAverage || 0) - (a.hotel.reviewAverage || 0));
+
+      // 目的地駅の最高評価ホテルを基準に設定
+      const destHotels = tempResults.filter(r => r.name === target.name);
+      const bestDestReview = destHotels.length > 0
+        ? Math.max(...destHotels.map(r => r.hotel.reviewAverage || 0))
+        : 0;
+
+      // savings を レビュー差として再計算（正: 基準より高評価）
+      tempResults.forEach(r => {
+        r.savings = ((r.hotel.reviewAverage || 0) - bestDestReview) * 100; // 0.1 差 = 10 として表示用にスケール
+      });
+    } else {
+      // 料金順: コストが安い順にソート
+      tempResults.sort((a, b) => a.totalCost - b.totalCost);
+    }
+
     setResults(tempResults);
     setLoading(false);
   };
@@ -489,19 +545,45 @@ const App: React.FC = () => {
 
             <div className="space-y-4">
               {results.length > 0 && (
-                <h2 className="text-lg font-bold text-gray-800 mb-4 px-2">
-                  検索結果 <span className="text-sm font-normal text-gray-500 ml-2">{results.length}件</span>
-                </h2>
+                <div className="flex justify-between items-center px-2 mb-4">
+                  <h2 className="text-lg font-bold text-gray-800">
+                    検索結果 <span className="text-sm font-normal text-gray-500 ml-2">{results.length}件</span>
+                  </h2>
+                  <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+                    <button
+                      onClick={() => setSortMode('price')}
+                      className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${sortMode === 'price'
+                        ? 'bg-white text-blue-600 shadow-sm'
+                        : 'text-gray-500 hover:text-gray-700'
+                        }`}
+                    >
+                      料金順
+                    </button>
+                    <button
+                      onClick={() => setSortMode('review')}
+                      className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${sortMode === 'review'
+                        ? 'bg-white text-orange-600 shadow-sm'
+                        : 'text-gray-500 hover:text-gray-700'
+                        }`}
+                    >
+                      レビュー順
+                    </button>
+                  </div>
+                </div>
               )}
               {(() => {
                 const minPrice = results.length > 0
                   ? Math.min(...results.map(r => r.totalCost))
                   : Infinity;
+                const maxReview = results.length > 0
+                  ? Math.max(...results.map(r => r.hotel.reviewAverage || 0))
+                  : 0;
 
                 return results.map((result, index) => {
                   const price = result.totalCost;
                   const isCheapest = price === minPrice;
                   const isOptimal = index === 0;
+                  const isHighestRated = (result.hotel.reviewAverage || 0) === maxReview && maxReview > 0;
 
                   // 代表路線の色を使用
                   const mainLineId = result.lines && result.lines.length > 0 ? result.lines[0] : undefined;
@@ -517,11 +599,13 @@ const App: React.FC = () => {
                       selectedDate={searchedParams.selectedDate}
                       isCheapest={isCheapest}
                       isOptimal={isOptimal}
+                      isHighestRated={isHighestRated}
                       ticketFare={result.ticketFare}
                       numberOfStops={result.numberOfStops}
                       adultCount={searchedParams.adultCount}
                       nightCount={searchedParams.nightCount}
                       roomCount={searchedParams.roomCount}
+                      sortMode={sortMode}
                     />
                   );
                 });

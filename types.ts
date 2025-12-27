@@ -28,6 +28,8 @@ export interface HotelResult {
   hotelUrl?: string;
   hotelImageUrl?: string;
   reviewAverage?: number;
+  hotelLat?: number;
+  hotelLng?: number;
 }
 
 export interface ScoredResult extends Station {
