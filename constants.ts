@@ -107,3 +107,11 @@ export const CALC_CONSTANTS = {
   MINUTES_PER_STATION: 2,
   VALUE_OF_TIME_PER_MINUTE: 30,
 };
+
+const lineMap = new Map<string, MetroLine>();
+METRO_LINES.forEach(l => lineMap.set(l.id, l));
+
+export const getLineColor = (lineId?: string) => {
+  if (!lineId) return '#cccccc';
+  return lineMap.get(lineId)?.color || '#cccccc';
+};

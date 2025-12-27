@@ -23,7 +23,7 @@ interface ResultCardProps {
   adultCount: number;
   nightCount: number;
   roomCount: number;
-  sortMode: 'price' | 'review';
+  sortMode: 'price' | 'review' | 'cospa';
 }
 
 export const ResultCard: React.FC<ResultCardProps> = ({
@@ -161,6 +161,44 @@ export const ResultCard: React.FC<ResultCardProps> = ({
                 <div className="text-lg font-bold text-gray-400">レビューなし</div>
               )}
             </>
+          ) : sortMode === 'cospa' ? (
+            // コスパモード: コスパ指標を表示
+            <div className="flex flex-col items-end leading-none">
+              {result.savedMoney !== undefined && result.extraTime !== undefined ? (
+                <>
+                  {/* 基準ホテルは特別アイコン */}
+                  {result.extraTime === 0 && result.savedMoney === 0 ? (
+                    <div className="flex flex-col items-end">
+                      <div className="text-2xl font-bold text-gray-400">-</div>
+                      <span className="text-xs text-gray-500 mt-0.5">基準</span>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-end">
+                      <div className={`text-2xl font-bold ${(result.cospaIndex ?? 0) > 0 ? 'text-green-600' :
+                          (result.cospaIndex ?? 0) < 0 ? 'text-red-500' : 'text-gray-500'
+                        }`}>
+                        {result.cospaIndex === Infinity ? '-' : result.cospaIndex?.toLocaleString() || '0'}
+                      </div>
+                      <span className="text-xs text-gray-500 mt-0.5">pt</span>
+                    </div>
+                  )}
+
+                  <div className="text-[10px] text-gray-400 mt-1 text-right">
+                    {/* 金額差分 */}
+                    <span className={result.savedMoney > 0 ? 'text-green-600' : result.savedMoney < 0 ? 'text-red-500' : ''}>
+                      {result.savedMoney > 0 ? '+' : ''}{result.savedMoney.toLocaleString()}円
+                    </span>
+                    <span className="mx-1">/</span>
+                    {/* 時間差分 */}
+                    <span className={result.extraTime <= 0 ? 'text-green-600' : ''}>
+                      {result.extraTime > 0 ? '+' : ''}{result.extraTime}分
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <div className="text-lg font-bold text-gray-400">-</div>
+              )}
+            </div>
           ) : (
             // 料金モード: お得額を表示
             savingsPerPerson !== undefined ? (

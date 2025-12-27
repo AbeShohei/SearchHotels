@@ -44,6 +44,10 @@ export interface ScoredResult extends Station {
   totalCost: number;     // Sum of hotel + round trip fare
   savings?: number;      // Difference from destination cost (positive = cheaper)
   numberOfStops?: number;
+  // コスパ指標用
+  savedMoney?: number;   // 浮いた金額 (円)
+  extraTime?: number;    // 追加時間 (分)
+  cospaIndex?: number;   // コスパ指標 (円/分)
 }
 
 
@@ -67,4 +71,11 @@ export interface OdptRailway {
     'odpt:station': string;
     'odpt:index': number;
   }[];
+}
+// Re-export or redefine to avoid deep imports if preferred, 
+// but importing from service is fine if no cycle.
+import { FirstLastTrainInfo } from './services/travelTimeService';
+
+export interface ExtendedResult extends ScoredResult {
+  trainSchedule?: FirstLastTrainInfo;
 }

@@ -45,17 +45,7 @@ export const searchHotels = async (
         const response = await fetch(url);
 
         if (!response.ok) {
-            if (response.status === 404) {
-                // データなし(Data Not Found)は正常系として扱う
-                return [];
-            }
-
-            console.error(`Rakuten API Error: ${response.status} ${response.statusText}`);
-            try {
-                const text = await response.text();
-                // 400 Bad Request error_description: "wrong_parameter" など
-                console.error("Rakuten API Error Body:", text);
-            } catch (e) { /* ignore */ }
+            // 404含む全てのエラーで空配列を返す（ログなし）
             return [];
         }
 
@@ -127,7 +117,7 @@ export const searchHotels = async (
         return results;
 
     } catch (e) {
-        console.error("Failed to fetch Rakuten hotels (Network/CORS error?):", e);
+        // エラーは静かに空配列を返す
         return [];
     }
 };

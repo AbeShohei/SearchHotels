@@ -1,32 +1,18 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import * as odpt from './services/odptService';
 import { searchHotels } from './services/rakutenService';
-
 import { getFaresFromStation } from './services/fareService';
-import { getTravelTime, getFirstLastTrains, FirstLastTrainInfo } from './services/travelTimeService';
+import { getFirstLastTrains } from './services/travelTimeService';
 import { initializeNetwork, findRoutesToDestination, isNetworkInitialized, RouteResult } from './services/networkService';
 import { getWalkingTimeToStation } from './services/walkingService';
-import { ScoredResult, Station, GroupedStation } from './types';
-import { ResultCard } from './components/ResultCard';
-import { DateRangePicker } from './components/DateRangePicker';
-import { METRO_LINES, MetroLine } from './constants';
+import { GroupedStation, ExtendedResult } from './types';
+import { METRO_LINES } from './constants';
+import { calculateAndSortResults } from './utils/sort';
 
-
-
-// Helper to get line color
-const lineMap = new Map<string, MetroLine>();
-METRO_LINES.forEach(l => lineMap.set(l.id, l));
-
-const getLineColor = (lineId?: string) => {
-  if (!lineId) return '#cccccc';
-  return lineMap.get(lineId)?.color || '#cccccc';
-};
-
-
-
-interface ExtendedResult extends ScoredResult {
-  trainSchedule?: FirstLastTrainInfo;
-}
+import { Header } from './components/Layout/Header';
+import { ScrollToTopButton } from './components/Layout/ScrollToTopButton';
+import { SearchForm } from './components/Search/SearchForm';
+import { ResultList } from './components/Result/ResultList';
 
 const App: React.FC = () => {
   const [groupedStations, setGroupedStations] = useState<GroupedStation[]>([]);
@@ -49,7 +35,7 @@ const App: React.FC = () => {
   const [adultCount, setAdultCount] = useState(2);
   const [roomCount, setRoomCount] = useState(1);
 
-  // Search parameters snapshot (to avoid updating results when inputs change)
+  // Search parameters snapshot
   const [searchedParams, setSearchedParams] = useState({
     adultCount: 2,
     nightCount: 1,
@@ -62,17 +48,9 @@ const App: React.FC = () => {
   const [selectedStation, setSelectedStation] = useState<GroupedStation | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
-  const [showScrollTop, setShowScrollTop] = useState(false);
-  const [sortMode, setSortMode] = useState<'price' | 'review'>('price');
+  const [sortMode, setSortMode] = useState<'price' | 'review' | 'cospa'>('cospa');
 
-  useEffect(() => {
-    const handleScroll = () => {
-      setShowScrollTop(window.scrollY > 300);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
+  // Suggestions logic
   const suggestions = useMemo(() => {
     if (!stationInput.trim()) return groupedStations;
     const query = stationInput.toLowerCase();
@@ -83,48 +61,18 @@ const App: React.FC = () => {
     ).slice(0, 8);
   }, [stationInput, groupedStations]);
 
+  // Initial Data Load
   useEffect(() => {
     const init = async () => {
-      // Load stations
       const stations = await odpt.getAllGroupedStations();
       setGroupedStations(stations);
-
-      // Initialize network
       await initializeNetwork();
       setIsNetworkLoaded(true);
     };
     init();
   }, []);
 
-  // Re-sort when sortMode changes
-  useEffect(() => {
-    if (results.length === 0) return;
-
-    const sorted = [...results];
-    if (sortMode === 'review') {
-      sorted.sort((a, b) => (b.hotel.reviewAverage || 0) - (a.hotel.reviewAverage || 0));
-      // 目的地駅の最高評価を基準に
-      const destHotels = sorted.filter(r => r.name === stationInput);
-      const bestDestReview = destHotels.length > 0
-        ? Math.max(...destHotels.map(r => r.hotel.reviewAverage || 0))
-        : (sorted[0]?.hotel.reviewAverage || 0);
-      sorted.forEach(r => {
-        r.savings = ((r.hotel.reviewAverage || 0) - bestDestReview) * 100;
-      });
-    } else {
-      sorted.sort((a, b) => a.totalCost - b.totalCost);
-      // 目的地駅のコストを基準に
-      const destResult = sorted.find(r => r.name === stationInput);
-      if (destResult) {
-        sorted.forEach(r => {
-          r.savings = destResult.totalCost - r.totalCost;
-        });
-      }
-    }
-    setResults(sorted);
-  }, [sortMode]);
-
-  // Set default selection when stations are loaded
+  // Set default selection
   useEffect(() => {
     if (groupedStations.length > 0 && !selectedStation && stationInput === '銀座') {
       const match = groupedStations.find(s => s.name === '銀座');
@@ -132,6 +80,15 @@ const App: React.FC = () => {
     }
   }, [groupedStations]);
 
+  // Re-sort when sortMode changes
+  useEffect(() => {
+    if (results.length === 0) return;
+    // Use helper utility
+    // Need target station name to identify baseline/destination
+    // Assuming stationInput is the target name (as per original logic logic: const destHotels = sorted.filter(r => r.name === stationInput);)
+    const sorted = calculateAndSortResults(results, sortMode, stationInput);
+    setResults(sorted);
+  }, [sortMode]);
 
 
   const handleStationSelect = (station: GroupedStation) => {
@@ -141,7 +98,6 @@ const App: React.FC = () => {
   };
 
   const handleSearch = async () => {
-
     let target = selectedStation;
     if (!target && stationInput) {
       target = groupedStations.find(s => s.name === stationInput) || null;
@@ -151,8 +107,9 @@ const App: React.FC = () => {
       return;
     }
     setLoading(true);
+    setLoadingProgress('検索準備中...');
 
-    // Calculate nights for params
+    // Calculate nights
     const d1 = new Date(selectedDate);
     const d2 = new Date(checkOutDate);
     const diff = Math.max(1, Math.ceil((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24)));
@@ -161,58 +118,38 @@ const App: React.FC = () => {
     setResults([]);
     setHasSearched(true);
 
-    // 1. 経路計算 (乗り換えなし: maxTransfers=0)
+    // 1. Route Calculation
     const routeResults = findRoutesToDestination(target.name, 0);
 
-    // 2. 運賃取得
+    // 2. Fares
     const representativeId = target.stations[0].id;
-
     let faresMap;
     try {
       faresMap = await getFaresFromStation(representativeId);
     } catch (e) {
-      // console.error('Failed to get fares', e);
       faresMap = new Map();
     }
 
     const tempResults: ExtendedResult[] = [];
 
-    // routeResults (Map<stationId, RouteResult>) をループ
-    // hotelsは各駅（routeResultsのキー）にあると仮定
-    for (const [stationId, route] of routeResults.entries()) {
-      // 自分自身（目的地）はスキップしない
-      // if (route.totalTime === 0 && stationId === representativeId) continue;
-
-      // ... (省略なし、しかしコンテキストのためループ内は変更しないが、target変数を使う必要がある箇所をチェック)
-      // representativeId は target から取っているのOK
-    }
-
-    // 駅名単位でベストなルートを集約する
+    // Filter best routes by name
     const bestRoutesByName = new Map<string, RouteResult>();
     for (const [id, route] of routeResults.entries()) {
       const stationName = groupedStations.find(g => g.stations.some(s => s.id === id))?.name;
       if (!stationName) continue;
-
-      // 目的地そのものはスキップしない（ユーザー要望）
-      // if (stationName === target.name) continue;
 
       if (!bestRoutesByName.has(stationName) || bestRoutesByName.get(stationName)!.totalTime > route.totalTime) {
         bestRoutesByName.set(stationName, route);
       }
     }
 
-    // ... (後半の処理は変更なし)
-
-
-    // 目的地を最初に検索し、残りは移動時間が短い順（近い順）に並び替える
+    // Sort routes for search order
     const sortedRoutes = new Map<string, RouteResult>();
-
-    // 1. Destination first
+    // Destination first
     if (bestRoutesByName.has(target.name)) {
       sortedRoutes.set(target.name, bestRoutesByName.get(target.name)!);
     }
-
-    // 2. Sort others by totalTime
+    // Sort others
     const otherStations = Array.from(bestRoutesByName.entries())
       .filter(([name]) => name !== target.name)
       .sort((a, b) => a[1].totalTime - b[1].totalTime);
@@ -227,32 +164,25 @@ const App: React.FC = () => {
     for (const [name, route] of sortedRoutes.entries()) {
       processedCount++;
       setLoadingProgress(`周辺駅を検索中... (${processedCount}/${totalStations})`);
-      // ...
+
       const group = groupedStations.find(g => g.name === name);
       if (!group) continue;
 
-      // Rate limiting: wait 1 second between requests
+      // Rate limiting
       await new Promise(resolve => setTimeout(resolve, 1000));
 
       try {
-        // Find best station in group for lat/lng (usually the first one)
         const lat = group.stations.length > 0 ? group.stations[0].lat : 35.6812;
         const lng = group.stations.length > 0 ? group.stations[0].lng : 139.7671;
 
         const hotels = await searchHotels(lat, lng, selectedDate, checkOutDate, adultCount, roomCount);
-        if (hotels.length === 0) {
-          // 楽天APIで見つからなかった場合は結果に含めない
-          // console.log(`No hotels found for ${name}`);
-          continue;
-        }
+        if (hotels.length === 0) continue;
 
-        // ヒットしたすべてのホテルごとに結果を作成する
-        // レビューモードでは全件表示、料金モードでは各駅最大5件
         const targetHotels = sortMode === 'review' ? hotels : hotels.slice(0, 5);
         for (let i = 0; i < targetHotels.length; i++) {
           const h = targetHotels[i];
           const hotel = {
-            ...h, // hotelName, price, hotelUrl, hotelImageUrl, reviewAverage
+            ...h,
             stationId: route.stationId
           };
 
@@ -268,22 +198,15 @@ const App: React.FC = () => {
             ticketFare = fareData ? fareData.ticketFare : 200;
           }
 
-          // const timeCost = route.totalTime * VALUE_OF_TIME_PER_MINUTE; // Removed
-          // Total Cost = Hotel Price (Total for stay) + Transport (Round trip * Adult Count * Days(Nights))
-          // ユーザー要望: 泊数分だけ往復料金を加算する (通勤利用などを想定)
           const totalCost = hotel.price + (icFare * 2 * adultCount * diff);
+          let trainSchedule;
 
-          let trainSchedule: FirstLastTrainInfo | undefined;
-
-          // 直通（乗り換えなし）の場合のみ、終電・始発情報を取得
+          // Train Schedule Logic
           if (route.transfers === 0 && route.lines.length > 0) {
             const lineId = route.lines[0];
             const line = METRO_LINES.find(l => l.id === lineId);
             const targetStation = target.stations.find(s => s.lineId === lineId);
-
             if (line && targetStation) {
-              // 駅の順序を取得して方向を判定
-              // Note: getLineStations is cached so this is efficient
               const response = await odpt.getLineStations(line);
               const stations = response.stations;
               const hotelIndex = stations.findIndex(s => s.id === route.stationId);
@@ -292,40 +215,23 @@ const App: React.FC = () => {
               if (hotelIndex !== -1 && targetIndex !== -1) {
                 let dirToHotel = '';
                 let dirToDest = '';
-
-                // indexが小さい方が「路線図の左側/上側」、大きい方が「路線図の右側/下側」
-                // directionAsc: indexが増える方向 (例: 荻窪 -> 池袋)
-                // directionDesc: indexが減る方向 (例: 池袋 -> 荻窪)
-
                 if (hotelIndex < targetIndex) {
-                  // Hotel < Target. 
-                  // Hotel -> Target is Ascending (Target is "after" Hotel)
-                  // Target -> Hotel is Descending (Hotel is "before" Target)
                   dirToDest = line.directionAsc;
                   dirToHotel = line.directionDesc;
                 } else {
-                  // Hotel > Target
-                  // Hotel -> Target is Descending
-                  // Target -> Hotel is Ascending
                   dirToDest = line.directionDesc;
                   dirToHotel = line.directionAsc;
                 }
-
                 if (dirToHotel && dirToDest) {
                   trainSchedule = await getFirstLastTrains(
-                    targetStation.id,
-                    route.stationId,
-                    dirToHotel,
-                    dirToDest,
-                    new Date(selectedDate),
-                    route.totalTime
+                    targetStation.id, route.stationId, dirToHotel, dirToDest,
+                    new Date(selectedDate), route.totalTime
                   );
                 }
               }
             }
           }
 
-          // ホテルから駅までの徒歩時間を計算
           let walkTime = 0;
           if (h.hotelLat && h.hotelLng && lat && lng) {
             const walkResult = await getWalkingTimeToStation(h.hotelLat, h.hotelLng, lat, lng);
@@ -333,7 +239,7 @@ const App: React.FC = () => {
           }
 
           tempResults.push({
-            id: `${route.stationId}_${i}`, // ユニークIDにするためにインデックス不可
+            id: `${route.stationId}_${i}`,
             name: name,
             romaji: '',
             kana: '',
@@ -354,78 +260,28 @@ const App: React.FC = () => {
           });
         }
 
-        // インクリメンタル表示更新
-        const destResult = tempResults.find(r => r.name === target.name);
-        if (destResult) {
-          tempResults.forEach(r => r.savings = destResult.totalCost - r.totalCost);
-        }
-        setResults([...tempResults].sort((a, b) => a.totalCost - b.totalCost));
+        // Incremental Update
+        // Use utility to sort and calculate scores
+        const sorted = calculateAndSortResults(tempResults, sortMode, target.name);
+        setResults(sorted);
 
       } catch (e) {
-        // console.error(`Error fetching hotels for ${name}`, e);
-        // エラー時もスキップ
         continue;
       }
     }
 
-    // 目的地（ターゲット駅）のコストを探す
-    const destinationResult = tempResults.find(r => r.name === target.name);
-    const destinationCost = destinationResult ? destinationResult.totalCost : undefined;
-
-    // お得額 (savings) を計算: 目的地コスト - 現在地コスト
-    // 目的地自身や、目的地より高い場所はマイナスになる（「割高」）
-    if (destinationCost !== undefined) {
-      tempResults.forEach(r => {
-        r.savings = destinationCost - r.totalCost;
-      });
-    }
-
-    // ソートモードに応じてソート
-    if (sortMode === 'review') {
-      // レビュー順: 評価が高い順にソート
-      tempResults.sort((a, b) => (b.hotel.reviewAverage || 0) - (a.hotel.reviewAverage || 0));
-
-      // 目的地駅の最高評価ホテルを基準に設定
-      const destHotels = tempResults.filter(r => r.name === target.name);
-      const bestDestReview = destHotels.length > 0
-        ? Math.max(...destHotels.map(r => r.hotel.reviewAverage || 0))
-        : 0;
-
-      // savings を レビュー差として再計算（正: 基準より高評価）
-      tempResults.forEach(r => {
-        r.savings = ((r.hotel.reviewAverage || 0) - bestDestReview) * 100; // 0.1 差 = 10 として表示用にスケール
-      });
-    } else {
-      // 料金順: コストが安い順にソート
-      tempResults.sort((a, b) => a.totalCost - b.totalCost);
-    }
-
-    setResults(tempResults);
+    // Final update (usually redundant due to incremental, but ensures consistency)
+    const finalSorted = calculateAndSortResults(tempResults, sortMode, target.name);
+    setResults(finalSorted);
     setLoading(false);
+    setLoadingProgress('');
   };
 
-  // validation
   const isSearchable = isNetworkLoaded && (!!selectedStation || groupedStations.some(s => s.name === stationInput));
 
   return (
     <div className="min-h-screen bg-gray-50 pb-12">
-      {/* ... header ... */}
-      <header className="bg-blue-600 text-white p-6 shadow-lg">
-        <div className="max-w-3xl mx-auto flex flex-col sm:flex-row justify-between items-center sm:items-start gap-2 sm:gap-0">
-          <div className="text-center sm:text-left">
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight">東京メトロ沿線ホテル検索</h1>
-          </div>
-          <div className="text-[10px] text-blue-200 text-center sm:text-right space-y-1">
-            <a href="https://webservice.rakuten.co.jp/" target="_blank" rel="noopener noreferrer" className="hover:text-white block transition-colors">
-              Supported by Rakuten Developers
-            </a>
-            <p className="leading-tight">
-              公共交通オープンデータセンター<br />のデータを利用しています
-            </p>
-          </div>
-        </div>
-      </header>
-
+      <Header />
       <main className="max-w-3xl mx-auto p-4">
         {!isNetworkLoaded ? (
           <div className="text-center py-12">
@@ -434,208 +290,50 @@ const App: React.FC = () => {
           </div>
         ) : (
           <>
-            <div className="bg-white rounded-xl shadow-md p-5 mb-6">
+            <SearchForm
+              stationInput={stationInput}
+              setStationInput={setStationInput}
+              groupedStations={groupedStations}
+              selectedStation={selectedStation}
+              setSelectedStation={setSelectedStation}
+              showSuggestions={showSuggestions}
+              setShowSuggestions={setShowSuggestions}
+              handleStationSelect={handleStationSelect}
+              suggestions={suggestions}
+              selectedDate={selectedDate}
+              setSelectedDate={setSelectedDate}
+              checkOutDate={checkOutDate}
+              setCheckOutDate={setCheckOutDate}
+              adultCount={adultCount}
+              setAdultCount={setAdultCount}
+              roomCount={roomCount}
+              setRoomCount={setRoomCount}
+              loading={loading}
+              isSearchable={isSearchable}
+              handleSearch={handleSearch}
+              loadingProgress={loadingProgress}
+            />
 
-              {/* Inputs */}
-              <div className="grid grid-cols-1 gap-4 mb-4">
-                <div className="relative">
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">目的地</label>
-                  <input
-                    type="text"
-                    value={stationInput}
-                    onChange={(e) => {
-                      setStationInput(e.target.value);
-                      setShowSuggestions(true);
-                      const match = groupedStations.find(s => s.name === e.target.value);
-                      if (match) setSelectedStation(match);
-                      else setSelectedStation(null);
-                    }}
-                    onFocus={() => setShowSuggestions(true)}
-                    onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                    placeholder="駅名を入力 (例: 新宿)"
-                    className="w-full bg-gray-50 border border-gray-300 text-gray-900 text-lg font-medium rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block p-3"
-                    disabled={loading}
-                  />
+            <ResultList
+              results={results}
+              sortMode={sortMode}
+              setSortMode={setSortMode}
+              searchedParams={searchedParams}
+            />
 
-                  {showSuggestions && suggestions.length > 0 && (
-                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                      {suggestions.map((station) => (
-                        <button
-                          key={station.name}
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            handleStationSelect(station);
-                          }}
-                          className="w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
-                        >
-                          <span className="font-medium">{station.name}</span>
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {station.stations.map(s => (
-                              <span key={s.id} className="text-xs px-2 py-0.5 rounded text-white" style={{ backgroundColor: getLineColor(s.lineId) }}>
-                                {s.lineName}
-                              </span>
-                            ))}
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="col-span-3 sm:col-span-1">
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">宿泊日程</label>
-                    <DateRangePicker
-                      checkInDate={selectedDate}
-                      checkOutDate={checkOutDate}
-                      onDateChange={(checkIn, checkOut) => {
-                        setSelectedDate(checkIn);
-                        setCheckOutDate(checkOut);
-                      }}
-                      disabled={loading}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">人数 (大人)</label>
-                    <select
-                      value={adultCount}
-                      onChange={(e) => setAdultCount(Number(e.target.value))}
-                      className="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm font-medium rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block p-2.5"
-                      disabled={loading}
-                    >
-                      {[1, 2, 3, 4].map(n => <option key={n} value={n}>{n}名</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">部屋数</label>
-                    <select
-                      value={roomCount}
-                      onChange={(e) => setRoomCount(Number(e.target.value))}
-                      className="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm font-medium rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block p-2.5"
-                      disabled={loading}
-                    >
-                      {[1, 2, 3, 4].map(num => (
-                        <option key={num} value={num}>{num}室</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
+            {hasSearched && results.length === 0 && !loading && (
+              <div className="text-center py-12 bg-white rounded-xl shadow-md">
+                <p className="text-gray-500 font-bold mb-2">検索結果が見つかりませんでした</p>
+                <p className="text-sm text-gray-400">
+                  日付や場所を変えて再度お試しください。
+                </p>
               </div>
-
-              <div className="mt-6">
-                <button
-                  onClick={handleSearch}
-                  disabled={loading || !isSearchable}
-                  className={`w-full px-8 py-3 rounded-lg font-bold text-white shadow-md transition-all 
-                    ${loading || !isSearchable
-                      ? 'bg-gray-400 cursor-not-allowed'
-                      : 'bg-blue-600 hover:bg-blue-700 hover:shadow-lg'
-                    }`}
-                >
-                  {loading ? (
-                    <div className="flex items-center justify-center gap-2">
-                      <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
-                      <span>{loadingProgress || 'ホテル検索中...'}</span>
-                    </div>
-                  ) : '検索開始'}
-                </button>
-              </div>
-            </div >
-
-            <div className="space-y-4">
-              {results.length > 0 && (
-                <div className="flex justify-between items-center px-2 mb-4">
-                  <h2 className="text-lg font-bold text-gray-800">
-                    検索結果 <span className="text-sm font-normal text-gray-500 ml-2">{results.length}件</span>
-                  </h2>
-                  <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
-                    <button
-                      onClick={() => setSortMode('price')}
-                      className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${sortMode === 'price'
-                        ? 'bg-white text-blue-600 shadow-sm'
-                        : 'text-gray-500 hover:text-gray-700'
-                        }`}
-                    >
-                      料金順
-                    </button>
-                    <button
-                      onClick={() => setSortMode('review')}
-                      className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${sortMode === 'review'
-                        ? 'bg-white text-orange-600 shadow-sm'
-                        : 'text-gray-500 hover:text-gray-700'
-                        }`}
-                    >
-                      レビュー順
-                    </button>
-                  </div>
-                </div>
-              )}
-              {(() => {
-                const minPrice = results.length > 0
-                  ? Math.min(...results.map(r => r.totalCost))
-                  : Infinity;
-                const maxReview = results.length > 0
-                  ? Math.max(...results.map(r => r.hotel.reviewAverage || 0))
-                  : 0;
-
-                return results.map((result, index) => {
-                  const price = result.totalCost;
-                  const isCheapest = price === minPrice;
-                  const isOptimal = index === 0;
-                  const isHighestRated = (result.hotel.reviewAverage || 0) === maxReview && maxReview > 0;
-
-                  // 代表路線の色を使用
-                  const mainLineId = result.lines && result.lines.length > 0 ? result.lines[0] : undefined;
-                  const lineColor = getLineColor(mainLineId);
-
-                  return (
-                    <ResultCard
-                      key={result.id}
-                      result={result}
-                      rank={index + 1}
-                      lineColor={lineColor}
-                      trainSchedule={result.trainSchedule}
-                      selectedDate={searchedParams.selectedDate}
-                      isCheapest={isCheapest}
-                      isOptimal={isOptimal}
-                      isHighestRated={isHighestRated}
-                      ticketFare={result.ticketFare}
-                      numberOfStops={result.numberOfStops}
-                      adultCount={searchedParams.adultCount}
-                      nightCount={searchedParams.nightCount}
-                      roomCount={searchedParams.roomCount}
-                      sortMode={sortMode}
-                    />
-                  );
-                });
-              })()}
-            </div>
-            {
-              hasSearched && results.length === 0 && !loading && (
-                <div className="text-center py-12 bg-white rounded-xl shadow-md">
-                  <p className="text-gray-500 font-bold mb-2">検索結果が見つかりませんでした</p>
-                  <p className="text-sm text-gray-400">
-                    日付や場所を変えて再度お試しください。
-                  </p>
-                </div>
-              )
-            }
+            )}
           </>
         )}
-      </main >
-      {showScrollTop && (
-        <button
-          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          className="fixed bottom-6 right-6 bg-blue-600 text-white p-3 rounded-full shadow-lg hover:bg-blue-700 transition-all z-50 focus:outline-none"
-          aria-label="ページトップへ戻る"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-          </svg>
-        </button>
-      )}
-    </div >
+      </main>
+      <ScrollToTopButton />
+    </div>
   );
 };
 
