@@ -2,15 +2,32 @@ export interface Station {
   id: string; // ODPT ID (e.g., odpt.Station:JR-East.ChuoRapid.Shinjuku)
   name: string;
   romaji: string;
+  kana?: string;
   lat: number;
   lng: number;
   stationCountFromShinjuku: number; // Index relative to Shinjuku
+}
+
+export interface GroupedStation {
+  name: string;
+  romaji: string;
+  kana?: string;
+  stations: {
+    id: string; // odpt:Station ID
+    lineId: string;
+    lineName: string;
+    lat: number;
+    lng: number;
+  }[];
 }
 
 export interface HotelResult {
   hotelName: string;
   price: number;
   stationId: string;
+  hotelUrl?: string;
+  hotelImageUrl?: string;
+  reviewAverage?: number;
 }
 
 export interface ScoredResult extends Station {
@@ -21,6 +38,8 @@ export interface ScoredResult extends Station {
   timeCost: number;      // Total time value
   trainTime: number;     // Minutes on train
   walkTime: number;      // Minutes walking (fixed based on destination)
+  transfers: number;     // Number of transfers
+  lines: string[];       // List of Line IDs used
   totalScore: number;
 }
 
@@ -41,6 +60,7 @@ export interface OdptStation {
   'odpt:stationTitle': {
     en: string;
     ja: string;
+    'ja-Hrkt'?: string;
   };
 }
 

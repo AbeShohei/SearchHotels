@@ -14,16 +14,24 @@ export interface StationDataResponse {
   error?: string;
 }
 
+// Cache for line stations
+const lineStationsCache = new Map<string, StationDataResponse>();
+
 /**
  * 指定した路線の駅一覧を取得
  */
 export const getLineStations = async (line: MetroLine): Promise<StationDataResponse> => {
+  if (lineStationsCache.has(line.id)) {
+    return lineStationsCache.get(line.id)!;
+  }
+
   try {
     const apiKey = getApiKey();
     if (!apiKey) {
       console.warn("ODPT_API_KEY not found");
       return { stations: [], isFallback: true, error: "API Key Missing" };
     }
+    // ... rest of the function (see below for where to set cache)
 
     // 1. Fetch Railway info
     const railwayUrl = `${ODPT_API_URL}/odpt:Railway?owl:sameAs=${line.id}&acl:consumerKey=${apiKey}`;
@@ -56,6 +64,7 @@ export const getLineStations = async (line: MetroLine): Promise<StationDataRespo
             id: stationData['owl:sameAs'],
             name: stationData['odpt:stationTitle']?.ja || stationData['dc:title'],
             romaji: stationData['odpt:stationTitle']?.en || '',
+            kana: stationData['odpt:stationTitle']?.['ja-Hrkt'],
             lat: stationData['geo:lat'],
             lng: stationData['geo:long'],
             stationCountFromShinjuku: 0,
@@ -80,8 +89,10 @@ export const getLineStations = async (line: MetroLine): Promise<StationDataRespo
       stationCountFromShinjuku: refIndex >= 0 ? Math.abs(idx - refIndex) : idx
     }));
 
-    console.log(`${line.name}: ${finalStations.length}駅を取得`);
-    return { stations: finalStations, isFallback: false };
+    // console.log(`${line.name}: ${finalStations.length}駅を取得`);
+    const result = { stations: finalStations, isFallback: false };
+    lineStationsCache.set(line.id, result);
+    return result;
 
   } catch (e: any) {
     console.error(`${line.name} 取得エラー:`, e);
@@ -113,3 +124,53 @@ export const getChuoLineStations = async () => {
 };
 
 export const getMetroStations = getChuoLineStations;
+
+/**
+ * 全路線の駅を取得し、駅名でグループ化して返す
+ */
+import { GroupedStation } from '../types';
+
+export const getAllGroupedStations = async (): Promise<GroupedStation[]> => {
+  const groupedMap = new Map<string, GroupedStation>();
+
+  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+  for (const line of METRO_LINES) {
+    await delay(100);
+    const data = await getLineStations(line);
+
+    // エラーがある場合はログに出してスキップ
+    if (data.isFallback || data.stations.length === 0) {
+      console.warn(`Skipping line ${line.name} due to fetch error or empty data`);
+      continue;
+    }
+
+    for (const station of data.stations) {
+      const existing = groupedMap.get(station.name);
+
+      const stationInfo = {
+        id: station.id,
+        lineId: line.id,
+        lineName: line.name,
+        lat: station.lat,
+        lng: station.lng
+      };
+
+      if (existing) {
+        // 重複チェック
+        if (!existing.stations.some(s => s.id === station.id)) {
+          existing.stations.push(stationInfo);
+        }
+      } else {
+        groupedMap.set(station.name, {
+          name: station.name,
+          romaji: station.romaji,
+          kana: station.kana,
+          stations: [stationInfo]
+        });
+      }
+    }
+  }
+
+  return Array.from(groupedMap.values()).sort((a, b) => a.romaji.localeCompare(b.romaji));
+};

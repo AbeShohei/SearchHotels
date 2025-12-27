@@ -31,7 +31,7 @@ export const prefetchAllFares = async (stationIds: string[]): Promise<void> => {
         return;
     }
 
-    console.log("ODPT APIから東京メトロ運賃データを取得中...");
+    // console.log("ODPT APIから東京メトロ運賃データを取得中...");
 
     try {
         // 各駅からの運賃を取得
@@ -64,13 +64,53 @@ export const prefetchAllFares = async (stationIds: string[]): Promise<void> => {
             });
         }
 
-        console.log(`✓ ODPT APIから ${fareCache.size} 件の運賃データを取得`);
+        // console.log(`✓ ODPT APIから ${fareCache.size} 件の運賃データを取得`);
         isFareDataLoaded = true;
 
     } catch (error) {
         console.error("運賃データ取得エラー:", error);
         isFareDataLoaded = true;
     }
+};
+
+/**
+ * 特定の駅からの全運賃を一括取得し、Mapで返す
+ * @param fromStationId 出発駅ID（目的地）
+ */
+export const getFaresFromStation = async (fromStationId: string): Promise<Map<string, FareData>> => {
+    const apiKey = getApiKey();
+    const resultMap = new Map<string, FareData>();
+
+    // 自分自身への運賃は0
+    resultMap.set(fromStationId, { icFare: 0, ticketFare: 0 });
+
+    if (!apiKey) return resultMap;
+
+    try {
+        const url = `${ODPT_API_URL}/odpt:RailwayFare?odpt:operator=${TARGET_OPERATOR_ID}&odpt:fromStation=${fromStationId}&acl:consumerKey=${apiKey}`;
+        const response = await fetch(url);
+        if (!response.ok) return resultMap;
+
+        const data = await response.json();
+        data.forEach((item: any) => {
+            const to = item['odpt:toStation'];
+            const icFare = item['odpt:icCardFare'];
+            const ticketFare = item['odpt:ticketFare'];
+
+            if (to && icFare !== undefined) {
+                resultMap.set(to, { icFare, ticketFare });
+
+                // キャッシュにも入れておく（getBothFares等のため）
+                const key = `${fromStationId}-${to}`;
+                fareCache.set(key, { icFare, ticketFare });
+                const revKey = `${to}-${fromStationId}`;
+                fareCache.set(revKey, { icFare, ticketFare });
+            }
+        });
+    } catch (e) {
+        console.error("Fare fetch error", e);
+    }
+    return resultMap;
 };
 
 /**

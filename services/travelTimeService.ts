@@ -39,7 +39,7 @@ export const prefetchTravelTimes = async (line: MetroLine): Promise<void> => {
     const lineId = line.id;
     if (travelTimeCache.has(lineId)) return;
 
-    console.log(`${line.name}の所要時間データを取得中...`);
+    // console.log(`${line.name}の所要時間データを取得中...`);
 
     try {
         const url = `${ODPT_API_URL}/odpt:TrainTimetable?odpt:railway=${lineId}&odpt:calendar=odpt.Calendar:Weekday&acl:consumerKey=${apiKey}`;
@@ -76,7 +76,7 @@ export const prefetchTravelTimes = async (line: MetroLine): Promise<void> => {
         }
 
         travelTimeCache.set(lineId, lineCache);
-        console.log(`✓ ${line.name}: ${lineCache.size}件の所要時間データを取得`);
+        // console.log(`✓ ${line.name}: ${lineCache.size}件の所要時間データを取得`);
 
     } catch (error) {
         console.error('TravelTime fetch error:', error);
