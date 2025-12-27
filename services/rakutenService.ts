@@ -42,9 +42,7 @@ export const searchHotels = async (
     const url = `${RAKUTEN_API_URL}?applicationId=${RAKUTEN_APP_ID}&format=json&checkinDate=${checkinDate}&checkoutDate=${checkoutDate}&latitude=${lat}&longitude=${lng}&searchRadius=${searchRadius}&adultNum=${adultNum}&roomNum=${roomNum}&datumType=1`;
 
     try {
-        console.log("Fetching Rakuten URL:", url); // for debug
         const response = await fetch(url);
-        console.log("Rakuten API Response Status:", response.status);
 
         if (!response.ok) {
             if (response.status === 404) {
