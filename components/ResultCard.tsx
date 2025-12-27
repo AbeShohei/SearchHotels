@@ -126,20 +126,20 @@ export const ResultCard: React.FC<ResultCardProps> = ({
         <div className="text-right shrink-0">
           {savingsPerPerson !== undefined ? (
             <>
-              {savingsPerPerson > 0 ? (
+              {totalSavings !== undefined && totalSavings > 0 ? (
                 <>
                   <div className="text-2xl font-bold text-red-500 flex flex-col items-end leading-none">
-                    <span>{savingsPerPerson.toLocaleString()} <span className="text-sm font-normal text-gray-500">円/人</span></span>
+                    <span>{totalSavings.toLocaleString()} <span className="text-sm font-normal text-gray-500">円</span></span>
                     <span className="text-xs text-red-500 font-bold block mt-0.5">お得！</span>
-                    <span className="text-[10px] text-red-400 mt-0.5">合計 {totalSavings?.toLocaleString()}円 お得</span>
+                    <span className="text-[10px] text-red-400 mt-0.5">1名あたり {savingsPerPerson?.toLocaleString()}円 お得</span>
                   </div>
                 </>
-              ) : savingsPerPerson < 0 ? (
+              ) : totalSavings !== undefined && totalSavings < 0 ? (
                 <>
                   <div className="text-lg font-bold text-gray-500 flex flex-col items-end leading-none">
-                    <span>{Math.abs(savingsPerPerson).toLocaleString()} <span className="text-sm font-normal text-gray-500">円/人</span></span>
+                    <span>{Math.abs(totalSavings).toLocaleString()} <span className="text-sm font-normal text-gray-500">円</span></span>
                     <span className="text-xs text-gray-500 block mt-0.5">割高</span>
-                    <span className="text-[10px] text-gray-400 mt-0.5">合計 {Math.abs(totalSavings!).toLocaleString()}円 割高</span>
+                    <span className="text-[10px] text-gray-400 mt-0.5">1名あたり {Math.abs(savingsPerPerson!).toLocaleString()}円 割高</span>
                   </div>
                 </>
               ) : (
@@ -161,28 +161,28 @@ export const ResultCard: React.FC<ResultCardProps> = ({
       {/* Breakdown */}
       <div className="grid grid-cols-2 gap-2 mb-4 text-sm bg-gray-50 p-3 rounded-lg">
         <div className="text-center border-r border-gray-200 flex flex-col justify-center relative">
-          <p className="text-gray-500 text-xs mb-1 leading-tight">宿泊費<br />(1名あたり)</p>
+          <p className="text-gray-500 text-xs mb-1 leading-tight">宿泊費<br />(合計)</p>
           <div className="text-center">
             <div className="flex justify-center gap-1 mb-1">
               <span className="text-[10px] bg-yellow-100 text-yellow-700 px-1 rounded">{nightCount}泊</span>
               <span className="text-[10px] bg-blue-100 text-blue-700 px-1 rounded">{roomCount}室</span>
             </div>
-            <span className="font-bold text-lg text-gray-800">¥{pricePerPerson.toLocaleString()}</span>
-            <div className="text-xs text-gray-400">合計 ¥{totalHotelPrice.toLocaleString()}</div>
+            <span className="font-bold text-lg text-gray-800">¥{totalHotelPrice.toLocaleString()}</span>
+            <div className="text-xs text-gray-400">1名あたり ¥{pricePerPerson.toLocaleString()}</div>
           </div>
         </div>
         <div className="text-center flex flex-col justify-center">
           <p className="text-gray-500 text-xs mb-1 leading-tight">
-            往復運賃<br />(1名あたり)
+            往復運賃<br />(合計)
             <span className="text-[10px] bg-gray-100 text-gray-600 px-1 rounded ml-1">×{nightCount}日</span>
           </p>
           <div className="flex items-center justify-center gap-2 mb-1">
             <div className="text-center">
               <span className="text-[10px] bg-green-100 text-green-700 px-1 rounded block mb-0.5 w-fit mx-auto">IC</span>
-              <span className="font-bold text-lg text-gray-800">¥{farePerPerson.toLocaleString()}</span>
+              <span className="font-bold text-lg text-gray-800">¥{totalIcFare.toLocaleString()}</span>
             </div>
           </div>
-          <div className="text-xs text-gray-400">合計 ¥{totalIcFare.toLocaleString()} ({adultCount}名)</div>
+          <div className="text-xs text-gray-400">1名あたり ¥{farePerPerson.toLocaleString()}</div>
         </div>
       </div>
 
@@ -233,12 +233,12 @@ export const ResultCard: React.FC<ResultCardProps> = ({
         </div>
 
         <div className="text-right min-w-[160px] bg-blue-50 px-4 py-2 rounded-lg border border-blue-100">
-          <p className="text-xs text-blue-800 mb-0.5 font-bold">1名あたり総額</p>
+          <p className="text-xs text-blue-800 mb-0.5 font-bold">総額 ({adultCount}名)</p>
           <div className="text-2xl font-bold text-gray-800 leading-none">
-            ¥{costPerPerson.toLocaleString()}
+            ¥{totalCost.toLocaleString()}
           </div>
           <p className="text-[10px] text-gray-500 mt-1 text-right">
-            (合計 ¥{totalCost.toLocaleString()})
+            (1名あたり ¥{costPerPerson.toLocaleString()})
           </p>
         </div>
       </div>

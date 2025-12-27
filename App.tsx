@@ -447,7 +447,7 @@ const App: React.FC = () => {
                   )}
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-[1.2fr_1.2fr_0.8fr_0.8fr] gap-2">
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">チェックイン</label>
                     <input
