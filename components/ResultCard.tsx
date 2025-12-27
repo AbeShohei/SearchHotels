@@ -19,6 +19,9 @@ interface ResultCardProps {
   isOptimal: boolean;
   ticketFare?: number;
   numberOfStops?: number;
+  adultCount: number;
+  nightCount: number;
+  roomCount: number;
 }
 
 export const ResultCard: React.FC<ResultCardProps> = ({
@@ -29,9 +32,26 @@ export const ResultCard: React.FC<ResultCardProps> = ({
   isCheapest,
   isOptimal,
   ticketFare,
-  numberOfStops
+  numberOfStops,
+  adultCount,
+  nightCount,
+  roomCount
 }) => {
-  const hotelPlusFare = result.hotel.price + (result.icFare * 2);
+  // Total costs
+  const totalHotelPrice = result.hotel.price;
+  // Transport Cost = Round Trip * Adult Count * Night Count
+  const totalIcFare = result.icFare * 2 * adultCount * nightCount;
+  const totalCost = totalHotelPrice + totalIcFare;
+
+  // Per person costs
+  const pricePerPerson = Math.round(totalHotelPrice / adultCount);
+  const farePerPerson = result.icFare * 2 * nightCount;
+  const costPerPerson = pricePerPerson + farePerPerson;
+
+  // Savings Logic
+  // result.savings is Total Savings. We also want per-person savings.
+  const totalSavings = result.savings !== undefined ? result.savings : undefined;
+  const savingsPerPerson = totalSavings !== undefined ? Math.round(totalSavings / adultCount) : undefined;
 
   const getNextDayStr = () => {
     if (!selectedDate) return '';
@@ -65,15 +85,14 @@ export const ResultCard: React.FC<ResultCardProps> = ({
         )}
       </div>
 
-      <div className="flex justify-between items-start mb-4">
-        <div className="flex items-center space-x-3">
-          <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold ${isOptimal ? 'bg-orange-100 text-orange-600' : 'bg-gray-100 text-gray-500'
+      <div className="flex flex-col sm:flex-row justify-between items-start mb-2 gap-3">
+        <div className="flex items-center space-x-3 w-full">
+          <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold shrink-0 ${isOptimal ? 'bg-orange-100 text-orange-600' : 'bg-gray-100 text-gray-500'
             }`}>
             #{rank}
           </div>
-          <div>
-
-            <h3 className="text-xl font-bold text-gray-800">{result.name} {result.romaji && <span className="text-sm font-normal text-gray-500">({result.romaji})</span>}</h3>
+          <div className="min-w-0 flex-1">
+            <h3 className="text-xl font-bold text-gray-800 truncate">{result.name} {result.romaji && <span className="text-sm font-normal text-gray-500">({result.romaji})</span>}</h3>
             {result.hotel.hotelUrl ? (
               <a href={result.hotel.hotelUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline truncate block">
                 {result.hotel.hotelName}
@@ -87,29 +106,47 @@ export const ResultCard: React.FC<ResultCardProps> = ({
             )}
           </div>
         </div>
-        <div className="text-right">
-          {result.savings !== undefined ? (
+      </div>
+
+      {/* Mobile: Lines and Savings side-by-side */}
+      <div className="flex flex-row justify-between items-end mb-4 gap-2">
+        {/* Lines */}
+        <div className="flex gap-1 flex-wrap content-end pb-1">
+          {result.lines && result.lines.map((lineId, i) => {
+            const info = getLineInfo(lineId);
+            return (
+              <span key={i} className="text-xs text-white px-2 py-0.5 rounded" style={{ backgroundColor: info.color }}>
+                {info.name}
+              </span>
+            );
+          })}
+        </div>
+
+        {/* Savings Info */}
+        <div className="text-right shrink-0">
+          {savingsPerPerson !== undefined ? (
             <>
-              {result.savings > 0 ? (
+              {savingsPerPerson > 0 ? (
                 <>
-                  <div className="text-2xl font-bold text-red-500">
-                    {result.savings.toLocaleString()} <span className="text-sm font-normal text-gray-500">円お得！</span>
+                  <div className="text-2xl font-bold text-red-500 flex flex-col items-end leading-none">
+                    <span>{savingsPerPerson.toLocaleString()} <span className="text-sm font-normal text-gray-500">円/人</span></span>
+                    <span className="text-xs text-red-500 font-bold block mt-0.5">お得！</span>
+                    <span className="text-[10px] text-red-400 mt-0.5">合計 {totalSavings?.toLocaleString()}円 お得</span>
                   </div>
-                  <p className="text-xs text-gray-400">目的地より</p>
                 </>
-              ) : result.savings < 0 ? (
+              ) : savingsPerPerson < 0 ? (
                 <>
-                  <div className="text-lg font-bold text-gray-500">
-                    {Math.abs(result.savings).toLocaleString()} <span className="text-sm font-normal text-gray-500">円割高</span>
+                  <div className="text-lg font-bold text-gray-500 flex flex-col items-end leading-none">
+                    <span>{Math.abs(savingsPerPerson).toLocaleString()} <span className="text-sm font-normal text-gray-500">円/人</span></span>
+                    <span className="text-xs text-gray-500 block mt-0.5">割高</span>
+                    <span className="text-[10px] text-gray-400 mt-0.5">合計 {Math.abs(totalSavings!).toLocaleString()}円 割高</span>
                   </div>
-                  <p className="text-xs text-gray-400">目的地より</p>
                 </>
               ) : (
                 <>
                   <div className="text-lg font-bold text-gray-500">
                     基準地
                   </div>
-                  <p className="text-xs text-gray-400">目的地</p>
                 </>
               )}
             </>
@@ -121,46 +158,31 @@ export const ResultCard: React.FC<ResultCardProps> = ({
         </div>
       </div>
 
-      {/* Route Info (Lines only, no transfer badge) */}
-      <div className="mb-3 flex items-center gap-2">
-        <div className="flex gap-1">
-          {result.lines && result.lines.map((lineId, i) => {
-            const info = getLineInfo(lineId);
-            return (
-              <span key={i} className="text-xs text-white px-2 py-0.5 rounded" style={{ backgroundColor: info.color }}>
-                {info.name}
-              </span>
-            );
-          })}
-        </div>
-      </div>
-
       {/* Breakdown */}
       <div className="grid grid-cols-2 gap-2 mb-4 text-sm bg-gray-50 p-3 rounded-lg">
-        <div className="text-center border-r border-gray-200 flex flex-col justify-center">
-          <p className="text-gray-500 text-xs mb-1">宿泊費</p>
+        <div className="text-center border-r border-gray-200 flex flex-col justify-center relative">
+          <p className="text-gray-500 text-xs mb-1 leading-tight">宿泊費<br />(1名あたり)</p>
           <div className="text-center">
-            <span className="text-[10px] bg-yellow-100 text-yellow-700 px-1 rounded block mb-0.5 w-fit mx-auto">1泊</span>
-            <span className="font-bold text-lg text-gray-800">¥{result.hotel.price.toLocaleString()}</span>
+            <div className="flex justify-center gap-1 mb-1">
+              <span className="text-[10px] bg-yellow-100 text-yellow-700 px-1 rounded">{nightCount}泊</span>
+              <span className="text-[10px] bg-blue-100 text-blue-700 px-1 rounded">{roomCount}室</span>
+            </div>
+            <span className="font-bold text-lg text-gray-800">¥{pricePerPerson.toLocaleString()}</span>
+            <div className="text-xs text-gray-400">合計 ¥{totalHotelPrice.toLocaleString()}</div>
           </div>
         </div>
         <div className="text-center flex flex-col justify-center">
-          <p className="text-gray-500 text-xs mb-1">往復運賃</p>
+          <p className="text-gray-500 text-xs mb-1 leading-tight">
+            往復運賃<br />(1名あたり)
+            <span className="text-[10px] bg-gray-100 text-gray-600 px-1 rounded ml-1">×{nightCount}日</span>
+          </p>
           <div className="flex items-center justify-center gap-2 mb-1">
             <div className="text-center">
               <span className="text-[10px] bg-green-100 text-green-700 px-1 rounded block mb-0.5 w-fit mx-auto">IC</span>
-              <span className="font-bold text-lg text-gray-800">¥{(result.icFare * 2).toLocaleString()}</span>
+              <span className="font-bold text-lg text-gray-800">¥{farePerPerson.toLocaleString()}</span>
             </div>
-            {(ticketFare !== undefined) && (
-              <div className="text-center pl-2 border-l border-gray-100">
-                <span className="text-[10px] bg-gray-100 text-gray-600 px-1 rounded border border-gray-200 block mb-0.5 w-fit mx-auto">切符</span>
-                <span className="font-bold text-lg text-gray-600">¥{(ticketFare * 2).toLocaleString()}</span>
-              </div>
-            )}
           </div>
-          <p className="text-[10px] text-gray-400">
-            片道: IC ¥{result.icFare.toLocaleString()} {ticketFare !== undefined ? `/ 切符 ¥${ticketFare.toLocaleString()}` : ''}
-          </p>
+          <div className="text-xs text-gray-400">合計 ¥{totalIcFare.toLocaleString()} ({adultCount}名)</div>
         </div>
       </div>
 
@@ -210,11 +232,14 @@ export const ResultCard: React.FC<ResultCardProps> = ({
           )}
         </div>
 
-        <div className="text-right min-w-[140px] bg-gray-50 px-4 py-2 rounded-lg border border-gray-200">
-          <p className="text-xs text-gray-500 mb-0.5">宿泊費 + 往復運賃</p>
-          <div className="text-xl font-bold text-gray-800">
-            ¥{hotelPlusFare.toLocaleString()}
+        <div className="text-right min-w-[160px] bg-blue-50 px-4 py-2 rounded-lg border border-blue-100">
+          <p className="text-xs text-blue-800 mb-0.5 font-bold">1名あたり総額</p>
+          <div className="text-2xl font-bold text-gray-800 leading-none">
+            ¥{costPerPerson.toLocaleString()}
           </div>
+          <p className="text-[10px] text-gray-500 mt-1 text-right">
+            (合計 ¥{totalCost.toLocaleString()})
+          </p>
         </div>
       </div>
     </div>

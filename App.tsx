@@ -49,6 +49,7 @@ const App: React.FC = () => {
   const [groupedStations, setGroupedStations] = useState<GroupedStation[]>([]);
   const [isNetworkLoaded, setIsNetworkLoaded] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState('');
   const [results, setResults] = useState<ExtendedResult[]>([]);
 
   // Date input
@@ -56,12 +57,37 @@ const App: React.FC = () => {
     const today = new Date();
     return today.toISOString().split('T')[0];
   });
+  const [checkOutDate, setCheckOutDate] = useState<string>(() => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return tomorrow.toISOString().split('T')[0];
+  });
+
+  const [adultCount, setAdultCount] = useState(2);
+  const [roomCount, setRoomCount] = useState(1);
+
+  // Search parameters snapshot (to avoid updating results when inputs change)
+  const [searchedParams, setSearchedParams] = useState({
+    adultCount: 2,
+    nightCount: 1,
+    roomCount: 1,
+    selectedDate: new Date().toISOString().split('T')[0]
+  });
 
   // Autocomplete state
-  const [stationInput, setStationInput] = useState('銀座');
+  const [stationInput, setStationInput] = useState('半蔵門');
   const [selectedStation, setSelectedStation] = useState<GroupedStation | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 300);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const suggestions = useMemo(() => {
     if (!stationInput.trim()) return groupedStations;
@@ -103,6 +129,7 @@ const App: React.FC = () => {
   };
 
   const handleSearch = async () => {
+    console.log("handleSearch clicked. selectedStation:", selectedStation?.name, "isNetworkLoaded:", isNetworkLoaded);
     let target = selectedStation;
     if (!target && stationInput) {
       target = groupedStations.find(s => s.name === stationInput) || null;
@@ -112,6 +139,13 @@ const App: React.FC = () => {
       return;
     }
     setLoading(true);
+
+    // Calculate nights for params
+    const d1 = new Date(selectedDate);
+    const d2 = new Date(checkOutDate);
+    const diff = Math.max(1, Math.ceil((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24)));
+
+    setSearchedParams({ adultCount, nightCount: diff, roomCount, selectedDate });
     setResults([]);
     setHasSearched(true);
 
@@ -157,130 +191,163 @@ const App: React.FC = () => {
 
     // ... (後半の処理は変更なし)
 
-    const searchDate = new Date(selectedDate);
-    const checkOut = new Date(selectedDate);
-    checkOut.setDate(checkOut.getDate() + 1);
-    const checkOutDateStr = checkOut.toISOString().split('T')[0];
 
-    for (const [name, route] of bestRoutesByName.entries()) {
+    // 目的地を最初に検索し、残りは移動時間が短い順（近い順）に並び替える
+    const sortedRoutes = new Map<string, RouteResult>();
+
+    // 1. Destination first
+    if (bestRoutesByName.has(target.name)) {
+      sortedRoutes.set(target.name, bestRoutesByName.get(target.name)!);
+    }
+
+    // 2. Sort others by totalTime
+    const otherStations = Array.from(bestRoutesByName.entries())
+      .filter(([name]) => name !== target.name)
+      .sort((a, b) => a[1].totalTime - b[1].totalTime);
+
+    otherStations.forEach(([name, route]) => {
+      sortedRoutes.set(name, route);
+    });
+
+    let processedCount = 0;
+    const totalStations = sortedRoutes.size;
+
+    for (const [name, route] of sortedRoutes.entries()) {
+      processedCount++;
+      setLoadingProgress(`周辺駅を検索中... (${processedCount}/${totalStations})`);
       // ...
       const group = groupedStations.find(g => g.name === name);
       if (!group) continue;
 
-      // Use the first station in the group to get coordinates
-      const lat = group.stations.length > 0 ? group.stations[0].lat : 35.6812; // Default to Tokyo
-      const lng = group.stations.length > 0 ? group.stations[0].lng : 139.7671;
+      // Rate limiting: wait 1 second between requests
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // 楽天トラベルAPIでホテル検索
-      // APIレート制限考慮: 300ms待機
-      await delay(300);
-
-      let hotel;
       try {
-        const hotels = await searchHotels(lat, lng, selectedDate, checkOutDateStr);
-        if (hotels.length > 0) {
-          hotel = {
-            ...hotels[0], // hotelName, price, hotelUrl, hotelImageUrl, reviewAverage
-            stationId: route.stationId
-          };
-        } else {
-          // 楽天APIで見つからなかった場合は結果に含めない (continue)
+        // Find best station in group for lat/lng (usually the first one)
+        const lat = group.stations.length > 0 ? group.stations[0].lat : 35.6812;
+        const lng = group.stations.length > 0 ? group.stations[0].lng : 139.7671;
+
+        console.log("Calling searchHotels with:", { lat, lng, selectedDate, checkOutDate, adultCount, roomCount: roomCount });
+        const hotels = await searchHotels(lat, lng, selectedDate, checkOutDate, adultCount, roomCount);
+        console.log(`Hotels found for ${name}: ${hotels.length}`);
+        if (hotels.length === 0) {
+          // 楽天APIで見つからなかった場合は結果に含めない
           // console.log(`No hotels found for ${name}`);
           continue;
         }
+
+        // ヒットしたすべてのホテルごとに結果を作成する (各駅最大5件まで)
+        const targetHotels = hotels.slice(0, 5);
+        for (let i = 0; i < targetHotels.length; i++) {
+          const h = targetHotels[i];
+          const hotel = {
+            ...h, // hotelName, price, hotelUrl, hotelImageUrl, reviewAverage
+            stationId: route.stationId
+          };
+
+          let icFare = 200;
+          let ticketFare = 200;
+
+          if (name === target.name) {
+            icFare = 0;
+            ticketFare = 0;
+          } else {
+            const fareData = faresMap.get(route.stationId);
+            icFare = fareData ? fareData.icFare : 200;
+            ticketFare = fareData ? fareData.ticketFare : 200;
+          }
+
+          // const timeCost = route.totalTime * VALUE_OF_TIME_PER_MINUTE; // Removed
+          // Total Cost = Hotel Price (Total for stay) + Transport (Round trip * Adult Count * Days(Nights))
+          // ユーザー要望: 泊数分だけ往復料金を加算する (通勤利用などを想定)
+          const totalCost = hotel.price + (icFare * 2 * adultCount * diff);
+
+          let trainSchedule: FirstLastTrainInfo | undefined;
+
+          // 直通（乗り換えなし）の場合のみ、終電・始発情報を取得
+          if (route.transfers === 0 && route.lines.length > 0) {
+            const lineId = route.lines[0];
+            const line = METRO_LINES.find(l => l.id === lineId);
+            const targetStation = target.stations.find(s => s.lineId === lineId);
+
+            if (line && targetStation) {
+              // 駅の順序を取得して方向を判定
+              // Note: getLineStations is cached so this is efficient
+              const response = await odpt.getLineStations(line);
+              const stations = response.stations;
+              const hotelIndex = stations.findIndex(s => s.id === route.stationId);
+              const targetIndex = stations.findIndex(s => s.id === targetStation.id);
+
+              if (hotelIndex !== -1 && targetIndex !== -1) {
+                let dirToHotel = '';
+                let dirToDest = '';
+
+                // indexが小さい方が「路線図の左側/上側」、大きい方が「路線図の右側/下側」
+                // directionAsc: indexが増える方向 (例: 荻窪 -> 池袋)
+                // directionDesc: indexが減る方向 (例: 池袋 -> 荻窪)
+
+                if (hotelIndex < targetIndex) {
+                  // Hotel < Target. 
+                  // Hotel -> Target is Ascending (Target is "after" Hotel)
+                  // Target -> Hotel is Descending (Hotel is "before" Target)
+                  dirToDest = line.directionAsc;
+                  dirToHotel = line.directionDesc;
+                } else {
+                  // Hotel > Target
+                  // Hotel -> Target is Descending
+                  // Target -> Hotel is Ascending
+                  dirToDest = line.directionDesc;
+                  dirToHotel = line.directionAsc;
+                }
+
+                if (dirToHotel && dirToDest) {
+                  trainSchedule = await getFirstLastTrains(
+                    targetStation.id,
+                    route.stationId,
+                    dirToHotel,
+                    dirToDest,
+                    new Date(selectedDate),
+                    route.totalTime
+                  );
+                }
+              }
+            }
+          }
+
+          tempResults.push({
+            id: `${route.stationId}_${i}`, // ユニークIDにするためにインデックス不可
+            name: name,
+            romaji: '',
+            kana: '',
+            lat: 0,
+            lng: 0,
+            stationCountFromShinjuku: 0,
+            hotel,
+            transportCost: icFare,
+            icFare,
+            ticketFare,
+            trainTime: route.totalTime,
+            walkTime: 0,
+            transfers: route.transfers,
+            lines: route.lines,
+            totalCost,
+            trainSchedule,
+            numberOfStops: route.numberOfStops
+          });
+        }
+
+        // インクリメンタル表示更新
+        const destResult = tempResults.find(r => r.name === target.name);
+        if (destResult) {
+          tempResults.forEach(r => r.savings = destResult.totalCost - r.totalCost);
+        }
+        setResults([...tempResults].sort((a, b) => a.totalCost - b.totalCost));
+
       } catch (e) {
         // console.error(`Error fetching hotels for ${name}`, e);
         // エラー時もスキップ
         continue;
       }
-
-      let icFare = 200;
-      let ticketFare = 200;
-
-      if (name === target.name) {
-        icFare = 0;
-        ticketFare = 0;
-      } else {
-        const fareData = faresMap.get(route.stationId);
-        icFare = fareData ? fareData.icFare : 200;
-        ticketFare = fareData ? fareData.ticketFare : 200;
-      }
-
-      // const timeCost = route.totalTime * VALUE_OF_TIME_PER_MINUTE; // Removed
-      const totalCost = hotel.price + (icFare * 2);
-
-      let trainSchedule: FirstLastTrainInfo | undefined;
-
-      // 直通（乗り換えなし）の場合のみ、終電・始発情報を取得
-      if (route.transfers === 0 && route.lines.length > 0) {
-        const lineId = route.lines[0];
-        const line = METRO_LINES.find(l => l.id === lineId);
-        const targetStation = target.stations.find(s => s.lineId === lineId);
-
-        if (line && targetStation) {
-          // 駅の順序を取得して方向を判定
-          // Note: getLineStations is cached so this is efficient
-          const response = await odpt.getLineStations(line);
-          const stations = response.stations;
-          const hotelIndex = stations.findIndex(s => s.id === route.stationId);
-          const targetIndex = stations.findIndex(s => s.id === targetStation.id);
-
-          if (hotelIndex !== -1 && targetIndex !== -1) {
-            let dirToHotel = '';
-            let dirToDest = '';
-
-            // indexが小さい方が「路線図の左側/上側」、大きい方が「路線図の右側/下側」
-            // directionAsc: indexが増える方向 (例: 荻窪 -> 池袋)
-            // directionDesc: indexが減る方向 (例: 池袋 -> 荻窪)
-
-            if (hotelIndex < targetIndex) {
-              // Hotel < Target. 
-              // Hotel -> Target is Ascending (Target is "after" Hotel)
-              // Target -> Hotel is Descending (Hotel is "before" Target)
-              dirToDest = line.directionAsc;
-              dirToHotel = line.directionDesc;
-            } else {
-              // Hotel > Target
-              // Hotel -> Target is Descending
-              // Target -> Hotel is Ascending
-              dirToDest = line.directionDesc;
-              dirToHotel = line.directionAsc;
-            }
-
-            if (dirToHotel && dirToDest) {
-              trainSchedule = await getFirstLastTrains(
-                targetStation.id,
-                route.stationId,
-                dirToHotel,
-                dirToDest,
-                searchDate,
-                route.totalTime
-              );
-            }
-          }
-        }
-      }
-
-      tempResults.push({
-        id: route.stationId,
-        name: name,
-        romaji: '',
-        kana: '',
-        lat: 0,
-        lng: 0,
-        stationCountFromShinjuku: 0,
-        hotel,
-        transportCost: icFare,
-        icFare,
-        ticketFare,
-        trainTime: route.totalTime,
-        walkTime: 0,
-        transfers: route.transfers,
-        lines: route.lines,
-        totalCost,
-        trainSchedule,
-        numberOfStops: route.numberOfStops
-      });
     }
 
     // 目的地（ターゲット駅）のコストを探す
@@ -307,13 +374,12 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 pb-12">
       {/* ... header ... */}
-      <header className="bg-blue-600 text-white p-6 shadow-lg sticky top-0 z-50">
-        <div className="max-w-3xl mx-auto flex justify-between items-start">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">東京メトロ ホテル検索</h1>
-            <p className="text-blue-100 text-sm mt-1">全路線対応・乗換検索</p>
+      <header className="bg-blue-600 text-white p-6 shadow-lg">
+        <div className="max-w-3xl mx-auto flex flex-col sm:flex-row justify-between items-center sm:items-start gap-2 sm:gap-0">
+          <div className="text-center sm:text-left">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight">東京メトロ沿線ホテル検索</h1>
           </div>
-          <div className="text-[10px] text-blue-200 text-right space-y-1">
+          <div className="text-[10px] text-blue-200 text-center sm:text-right space-y-1">
             <a href="https://webservice.rakuten.co.jp/" target="_blank" rel="noopener noreferrer" className="hover:text-white block transition-colors">
               Supported by Rakuten Developers
             </a>
@@ -333,7 +399,7 @@ const App: React.FC = () => {
           </div>
         ) : (
           <>
-            <div className="bg-white rounded-xl shadow-md p-6 mb-6">
+            <div className="bg-white rounded-xl shadow-md p-5 mb-6">
 
               {/* Inputs */}
               <div className="grid grid-cols-1 gap-4 mb-4">
@@ -381,16 +447,61 @@ const App: React.FC = () => {
                   )}
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">宿泊日</label>
-                  <input
-                    type="date"
-                    value={selectedDate}
-                    onChange={(e) => setSelectedDate(e.target.value)}
-                    className="w-full bg-gray-50 border border-gray-300 text-gray-900 text-lg font-medium rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block p-3"
-                    disabled={loading}
-                  />
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">チェックイン</label>
+                    <input
+                      type="date"
+                      value={selectedDate}
+                      onChange={(e) => {
+                        setSelectedDate(e.target.value);
+                        if (e.target.value >= checkOutDate) {
+                          const next = new Date(e.target.value);
+                          next.setDate(next.getDate() + 1);
+                          setCheckOutDate(next.toISOString().split('T')[0]);
+                        }
+                      }}
+                      className="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm font-medium rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block p-2.5"
+                      disabled={loading}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">チェックアウト</label>
+                    <input
+                      type="date"
+                      value={checkOutDate}
+                      min={new Date(new Date(selectedDate).getTime() + 86400000).toISOString().split('T')[0]}
+                      onChange={(e) => setCheckOutDate(e.target.value)}
+                      className="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm font-medium rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block p-2.5"
+                      disabled={loading}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">人数 (大人)</label>
+                    <select
+                      value={adultCount}
+                      onChange={(e) => setAdultCount(Number(e.target.value))}
+                      className="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm font-medium rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block p-2.5"
+                      disabled={loading}
+                    >
+                      {[1, 2, 3, 4].map(n => <option key={n} value={n}>{n}名</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">部屋数</label>
+                    <select
+                      value={roomCount}
+                      onChange={(e) => setRoomCount(Number(e.target.value))}
+                      className="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm font-medium rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block p-2.5"
+                      disabled={loading}
+                    >
+                      {[1, 2, 3, 4].map(num => (
+                        <option key={num} value={num}>{num}室</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
+
               </div>
 
               <div className="mt-6">
@@ -406,12 +517,12 @@ const App: React.FC = () => {
                   {loading ? (
                     <div className="flex items-center justify-center gap-2">
                       <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
-                      <span>ホテル検索中...</span>
+                      <span>{loadingProgress || 'ホテル検索中...'}</span>
                     </div>
                   ) : '検索開始'}
                 </button>
               </div>
-            </div>
+            </div >
 
             <div className="space-y-4">
               {results.length > 0 && (
@@ -421,11 +532,11 @@ const App: React.FC = () => {
               )}
               {(() => {
                 const minPrice = results.length > 0
-                  ? Math.min(...results.map(r => r.hotel.price + r.icFare * 2))
+                  ? Math.min(...results.map(r => r.totalCost))
                   : Infinity;
 
                 return results.map((result, index) => {
-                  const price = result.hotel.price + result.icFare * 2;
+                  const price = result.totalCost;
                   const isCheapest = price === minPrice;
                   const isOptimal = index === 0;
 
@@ -440,30 +551,46 @@ const App: React.FC = () => {
                       rank={index + 1}
                       lineColor={lineColor}
                       trainSchedule={result.trainSchedule}
-                      selectedDate={selectedDate}
+                      selectedDate={searchedParams.selectedDate}
                       isCheapest={isCheapest}
                       isOptimal={isOptimal}
                       ticketFare={result.ticketFare}
                       numberOfStops={result.numberOfStops}
+                      adultCount={searchedParams.adultCount}
+                      nightCount={searchedParams.nightCount}
+                      roomCount={searchedParams.roomCount}
                     />
                   );
                 });
               })()}
             </div>
-            {hasSearched && results.length === 0 && !loading && (
-              <div className="text-center py-12 bg-white rounded-xl shadow-md">
-                <p className="text-gray-500 font-bold mb-2">検索結果が見つかりませんでした</p>
-                <p className="text-sm text-gray-400">
-                  指定された条件（場所・日付）で空室のあるホテルが見つからないか、<br />
-                  経路計算可能な駅周辺にホテルがありませんでした。<br />
-                  日付や場所を変えて再度お試しください。
-                </p>
-              </div>
-            )}
+            {
+              hasSearched && results.length === 0 && !loading && (
+                <div className="text-center py-12 bg-white rounded-xl shadow-md">
+                  <p className="text-gray-500 font-bold mb-2">検索結果が見つかりませんでした</p>
+                  <p className="text-sm text-gray-400">
+                    指定された条件（場所・日付）で空室のあるホテルが見つからないか、<br />
+                    経路計算可能な駅周辺にホテルがありませんでした。<br />
+                    日付や場所を変えて再度お試しください。
+                  </p>
+                </div>
+              )
+            }
           </>
         )}
-      </main>
-    </div>
+      </main >
+      {showScrollTop && (
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="fixed bottom-6 right-6 bg-blue-600 text-white p-3 rounded-full shadow-lg hover:bg-blue-700 transition-all z-50 focus:outline-none"
+          aria-label="ページトップへ戻る"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+          </svg>
+        </button>
+      )}
+    </div >
   );
 };
 

@@ -25,8 +25,11 @@ export const searchHotels = async (
     lat: number,
     lng: number,
     checkinDate: string,
-    checkoutDate: string
+    checkoutDate: string,
+    adultNum: number,
+    roomNum: number
 ): Promise<HotelResult[]> => {
+    // console.log("searchHotels function called");
     if (!RAKUTEN_APP_ID) {
         console.warn("VITE_RAKUTEN_APP_ID is not set");
         return [];
@@ -36,42 +39,41 @@ export const searchHotels = async (
     const searchRadius = 3;
 
     // 楽天トラベルAPIは秒間リクエスト制限があるため注意が必要
-    // formatVersion=2を指定するとレスポンス構造が変わるため、既存のパースロジック(配列アクセス)に合わせるため除去します。
-    // items[0].hotel, items[1].roomInfo という構造は formatVersion指定なし(デフォルト)のものです。
-    const url = `${RAKUTEN_API_URL}?applicationId=${RAKUTEN_APP_ID}&format=json&checkinDate=${checkinDate}&checkoutDate=${checkoutDate}&latitude=${lat}&longitude=${lng}&searchRadius=${searchRadius}&adultNum=2&datumType=1`;
+    const url = `${RAKUTEN_API_URL}?applicationId=${RAKUTEN_APP_ID}&format=json&checkinDate=${checkinDate}&checkoutDate=${checkoutDate}&latitude=${lat}&longitude=${lng}&searchRadius=${searchRadius}&adultNum=${adultNum}&roomNum=${roomNum}&datumType=1`;
 
     try {
-        // console.log("Fetching Rakuten URL:", url); // for debug
+        console.log("Fetching Rakuten URL:", url); // for debug
         const response = await fetch(url);
+        console.log("Rakuten API Response Status:", response.status);
 
         if (!response.ok) {
             if (response.status === 404) {
                 // データなし(Data Not Found)は正常系として扱う
-                // console.log(`No hotels found for location ${lat},${lng}`);
                 return [];
             }
 
-            // console.error(`Rakuten API Error: ${response.status} ${response.statusText}`);
+            console.error(`Rakuten API Error: ${response.status} ${response.statusText}`);
             try {
                 const text = await response.text();
                 // 400 Bad Request error_description: "wrong_parameter" など
-                // console.error("Rakuten API Error Body:", text);
+                console.error("Rakuten API Error Body:", text);
             } catch (e) { /* ignore */ }
             return [];
         }
 
         const data = await response.json();
 
-        // デバッグ: 成功時のデータ構造確認（一瞬だけ有効化）
-        // if (data.hotels && data.hotels.length > 0) {
-        //    console.log("Rakuten API Success Structure:", JSON.stringify(data.hotels[0], null, 2));
-        // }
+        // 検索結果のルートキーを確認 ("hotels" または "items")
+        // ドキュメントによると formatVersion=1 で items になる可能性があるが、通常 VacantHotelSearch は hotels を返す
+        const hotelList = data.hotels || data.items;
+        // console.log(`Found ${hotelList ? hotelList.length : 0} raw items`);
 
-        if (!data.hotels || !Array.isArray(data.hotels)) {
+        if (!hotelList || !Array.isArray(hotelList)) {
+            // console.warn("Unexpected API response structure:", JSON.stringify(data).substring(0, 200));
             return [];
         }
 
-        const results: HotelResult[] = data.hotels.map((item: any) => {
+        const results: HotelResult[] = hotelList.map((item: any) => {
             // item = { hotel: [ {hotelBasicInfo: ...}, {roomInfo: ...}, ... ] }
             const hotelContainer = item.hotel;
             if (!Array.isArray(hotelContainer)) return null;
@@ -86,12 +88,18 @@ export const searchHotels = async (
             if (!basicInfo) return null;
 
             let price = 0;
+            // 泊数計算
+            const d1 = new Date(checkinDate);
+            const d2 = new Date(checkoutDate);
+            const nights = Math.max(1, Math.ceil((d2.getTime() - d1.getTime()) / 86400000));
+
             // roomInfoが配列で返ってくるので、その中のプランから最安値を探す
             if (Array.isArray(roomInfos)) {
                 // 有効な価格を持つプランを抽出
                 const charges = roomInfos.map((r: any) => {
                     const dc = r.dailyCharge;
-                    return dc?.total || dc?.stayTotal || 0;
+                    // stayTotalがあればそれを使う（滞在合計）。なければtotal（1日分と仮定）× 泊数
+                    return dc?.stayTotal || (dc?.total ? dc.total * nights : 0);
                 }).filter((p: number) => p > 0);
 
                 if (charges.length > 0) {
@@ -115,12 +123,11 @@ export const searchHotels = async (
             };
         }).filter((h: any) => h).sort((a: any, b: any) => a.price - b.price);
 
-        // 最安値の1件だけ返すか、複数返すか？
-        // SerachHotelsアプリの構造上、1駅につき1つの代表ホテル価格を使っているため、最安値を返すのが適切
-        return results.length > 0 ? [results[0]] : [];
+        // すべてのホテルを返す
+        return results;
 
     } catch (e) {
-        // console.error("Failed to fetch Rakuten hotels", e);
+        console.error("Failed to fetch Rakuten hotels (Network/CORS error?):", e);
         return [];
     }
 };
