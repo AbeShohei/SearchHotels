@@ -18,6 +18,7 @@ interface ResultCardProps {
   isCheapest: boolean;
   isOptimal: boolean;
   ticketFare?: number;
+  numberOfStops?: number;
 }
 
 export const ResultCard: React.FC<ResultCardProps> = ({
@@ -27,7 +28,8 @@ export const ResultCard: React.FC<ResultCardProps> = ({
   selectedDate,
   isCheapest,
   isOptimal,
-  ticketFare
+  ticketFare,
+  numberOfStops
 }) => {
   const hotelPlusFare = result.hotel.price + (result.icFare * 2);
 
@@ -86,10 +88,36 @@ export const ResultCard: React.FC<ResultCardProps> = ({
           </div>
         </div>
         <div className="text-right">
-          <div className="text-2xl font-bold text-gray-900">
-            {result.totalScore.toLocaleString()} <span className="text-sm font-normal text-gray-500">pt</span>
-          </div>
-          <p className="text-xs text-gray-400">総合スコア</p>
+          {result.savings !== undefined ? (
+            <>
+              {result.savings > 0 ? (
+                <>
+                  <div className="text-2xl font-bold text-red-500">
+                    {result.savings.toLocaleString()} <span className="text-sm font-normal text-gray-500">円お得！</span>
+                  </div>
+                  <p className="text-xs text-gray-400">目的地より</p>
+                </>
+              ) : result.savings < 0 ? (
+                <>
+                  <div className="text-lg font-bold text-gray-500">
+                    {Math.abs(result.savings).toLocaleString()} <span className="text-sm font-normal text-gray-500">円割高</span>
+                  </div>
+                  <p className="text-xs text-gray-400">目的地より</p>
+                </>
+              ) : (
+                <>
+                  <div className="text-lg font-bold text-gray-500">
+                    基準地
+                  </div>
+                  <p className="text-xs text-gray-400">目的地</p>
+                </>
+              )}
+            </>
+          ) : (
+            <div className="text-lg font-bold text-gray-400">
+              -
+            </div>
+          )}
         </div>
       </div>
 
@@ -108,12 +136,15 @@ export const ResultCard: React.FC<ResultCardProps> = ({
       </div>
 
       {/* Breakdown */}
-      <div className="grid grid-cols-3 gap-2 mb-4 text-sm bg-gray-50 p-3 rounded-lg">
+      <div className="grid grid-cols-2 gap-2 mb-4 text-sm bg-gray-50 p-3 rounded-lg">
         <div className="text-center border-r border-gray-200 flex flex-col justify-center">
           <p className="text-gray-500 text-xs mb-1">宿泊費</p>
-          <p className="font-semibold text-gray-700">¥{result.hotel.price.toLocaleString()}</p>
+          <div className="text-center">
+            <span className="text-[10px] bg-yellow-100 text-yellow-700 px-1 rounded block mb-0.5 w-fit mx-auto">1泊</span>
+            <span className="font-bold text-lg text-gray-800">¥{result.hotel.price.toLocaleString()}</span>
+          </div>
         </div>
-        <div className="text-center border-r border-gray-200 flex flex-col justify-center">
+        <div className="text-center flex flex-col justify-center">
           <p className="text-gray-500 text-xs mb-1">往復運賃</p>
           <div className="flex items-center justify-center gap-2 mb-1">
             <div className="text-center">
@@ -131,10 +162,6 @@ export const ResultCard: React.FC<ResultCardProps> = ({
             片道: IC ¥{result.icFare.toLocaleString()} {ticketFare !== undefined ? `/ 切符 ¥${ticketFare.toLocaleString()}` : ''}
           </p>
         </div>
-        <div className="text-center flex flex-col justify-center">
-          <p className="text-gray-500 text-xs mb-1">時間コスト</p>
-          <p className="font-semibold text-gray-700">¥{result.timeCost.toLocaleString()}</p>
-        </div>
       </div>
 
       {/* Train schedule and travel time & Total Cost */}
@@ -143,6 +170,11 @@ export const ResultCard: React.FC<ResultCardProps> = ({
           <div className="mb-2">
             <span className="font-medium text-gray-700">移動:</span>
             <span className="ml-1">{result.trainTime}分</span>
+            {numberOfStops !== undefined && (
+              <span className="ml-2 text-gray-500 text-[10px]">
+                ({numberOfStops}駅)
+              </span>
+            )}
           </div>
 
           {/* First/Last train info (Only for direct routes, exclude destination/0min) */}

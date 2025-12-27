@@ -11,7 +11,7 @@ import { ScoredResult, Station, GroupedStation } from './types';
 import { ResultCard } from './components/ResultCard';
 import { METRO_LINES, MetroLine } from './constants';
 
-const VALUE_OF_TIME_PER_MINUTE = 30;
+// const VALUE_OF_TIME_PER_MINUTE = 30; // Deprecated
 
 // Helper to get line color
 const lineMap = new Map<string, MetroLine>();
@@ -125,7 +125,7 @@ const App: React.FC = () => {
     try {
       faresMap = await getFaresFromStation(representativeId);
     } catch (e) {
-      console.error('Failed to get fares', e);
+      // console.error('Failed to get fares', e);
       faresMap = new Map();
     }
 
@@ -189,7 +189,7 @@ const App: React.FC = () => {
           continue;
         }
       } catch (e) {
-        console.error(`Error fetching hotels for ${name}`, e);
+        // console.error(`Error fetching hotels for ${name}`, e);
         // エラー時もスキップ
         continue;
       }
@@ -206,8 +206,8 @@ const App: React.FC = () => {
         ticketFare = fareData ? fareData.ticketFare : 200;
       }
 
-      const timeCost = route.totalTime * VALUE_OF_TIME_PER_MINUTE;
-      const totalScore = hotel.price + (icFare * 2) + timeCost;
+      // const timeCost = route.totalTime * VALUE_OF_TIME_PER_MINUTE; // Removed
+      const totalCost = hotel.price + (icFare * 2);
 
       let trainSchedule: FirstLastTrainInfo | undefined;
 
@@ -273,17 +273,30 @@ const App: React.FC = () => {
         transportCost: icFare,
         icFare,
         ticketFare,
-        timeCost,
         trainTime: route.totalTime,
         walkTime: 0,
         transfers: route.transfers,
         lines: route.lines,
-        totalScore,
-        trainSchedule
+        totalCost,
+        trainSchedule,
+        numberOfStops: route.numberOfStops
       });
     }
 
-    tempResults.sort((a, b) => a.totalScore - b.totalScore);
+    // 目的地（ターゲット駅）のコストを探す
+    const destinationResult = tempResults.find(r => r.name === target.name);
+    const destinationCost = destinationResult ? destinationResult.totalCost : undefined;
+
+    // お得額 (savings) を計算: 目的地コスト - 現在地コスト
+    // 目的地自身や、目的地より高い場所はマイナスになる（「割高」）
+    if (destinationCost !== undefined) {
+      tempResults.forEach(r => {
+        r.savings = destinationCost - r.totalCost;
+      });
+    }
+
+    // コストが安い順にソート (Total Score = Total Cost now)
+    tempResults.sort((a, b) => a.totalCost - b.totalCost);
     setResults(tempResults);
     setLoading(false);
   };
@@ -390,7 +403,12 @@ const App: React.FC = () => {
                       : 'bg-blue-600 hover:bg-blue-700 hover:shadow-lg'
                     }`}
                 >
-                  {loading ? '経路計算中...' : '検索開始'}
+                  {loading ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
+                      <span>ホテル検索中...</span>
+                    </div>
+                  ) : '検索開始'}
                 </button>
               </div>
             </div>
@@ -426,6 +444,7 @@ const App: React.FC = () => {
                       isCheapest={isCheapest}
                       isOptimal={isOptimal}
                       ticketFare={result.ticketFare}
+                      numberOfStops={result.numberOfStops}
                     />
                   );
                 });

@@ -41,7 +41,7 @@ export const searchHotels = async (
     const url = `${RAKUTEN_API_URL}?applicationId=${RAKUTEN_APP_ID}&format=json&checkinDate=${checkinDate}&checkoutDate=${checkoutDate}&latitude=${lat}&longitude=${lng}&searchRadius=${searchRadius}&adultNum=2&datumType=1`;
 
     try {
-        console.log("Fetching Rakuten URL:", url); // for debug
+        // console.log("Fetching Rakuten URL:", url); // for debug
         const response = await fetch(url);
 
         if (!response.ok) {
@@ -51,11 +51,11 @@ export const searchHotels = async (
                 return [];
             }
 
-            console.error(`Rakuten API Error: ${response.status} ${response.statusText}`);
+            // console.error(`Rakuten API Error: ${response.status} ${response.statusText}`);
             try {
                 const text = await response.text();
                 // 400 Bad Request error_description: "wrong_parameter" など
-                console.error("Rakuten API Error Body:", text);
+                // console.error("Rakuten API Error Body:", text);
             } catch (e) { /* ignore */ }
             return [];
         }
@@ -120,7 +120,7 @@ export const searchHotels = async (
         return results.length > 0 ? [results[0]] : [];
 
     } catch (e) {
-        console.error("Failed to fetch Rakuten hotels", e);
+        // console.error("Failed to fetch Rakuten hotels", e);
         return [];
     }
 };

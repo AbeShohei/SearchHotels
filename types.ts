@@ -35,12 +35,13 @@ export interface ScoredResult extends Station {
   transportCost: number; // One way IC fare (for calculation)
   icFare: number;        // One way IC fare
   ticketFare: number;    // One way ticket fare
-  timeCost: number;      // Total time value
   trainTime: number;     // Minutes on train
   walkTime: number;      // Minutes walking (fixed based on destination)
   transfers: number;     // Number of transfers
   lines: string[];       // List of Line IDs used
-  totalScore: number;
+  totalCost: number;     // Sum of hotel + round trip fare
+  savings?: number;      // Difference from destination cost (positive = cheaper)
+  numberOfStops?: number;
 }
 
 export interface Destination {

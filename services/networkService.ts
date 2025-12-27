@@ -156,6 +156,7 @@ export interface RouteResult {
     lines: string[]; // 使用路線ID
     routeText: string;
     sourceStationId?: string;
+    numberOfStops: number; // 目的地までの駅数
 }
 
 /**
@@ -173,8 +174,8 @@ export const findRoutesToDestination = (destinationName: string, maxTransfers: n
 
     const results = new Map<string, RouteResult>(); // key: stationId
 
-    // BFS用のキュー: { currentId, totalTime, transfers, lines, path }
-    const queue: { id: string; time: number; transfers: number; lines: string[]; path: string[] }[] = [];
+    // BFS用のキュー: { currentId, totalTime, transfers, lines, path, numberOfStops }
+    const queue: { id: string; time: number; transfers: number; lines: string[]; path: string[]; numberOfStops: number }[] = [];
 
     // 初期化：目的地駅群をキューに入れる
     destinationIds.forEach(id => {
@@ -183,14 +184,16 @@ export const findRoutesToDestination = (destinationName: string, maxTransfers: n
             time: 0,
             transfers: 0,
             lines: [idToLineMap.get(id) || ''],
-            path: [id]
+            path: [id],
+            numberOfStops: 0
         });
         results.set(id, {
             stationId: id,
             totalTime: 0,
             transfers: 0,
             lines: [idToLineMap.get(id) || ''],
-            routeText: '目的地'
+            routeText: '目的地',
+            numberOfStops: 0
         });
     });
 
@@ -211,24 +214,25 @@ export const findRoutesToDestination = (destinationName: string, maxTransfers: n
                 transfers: current.transfers,
                 lines: current.lines,
                 routeText: '',
-                sourceStationId: current.path[0]
+                sourceStationId: current.path[0],
+                numberOfStops: current.numberOfStops
             });
         }
 
         if (current.transfers > maxTransfers) continue;
 
-        // 1. Same line neighbors
+        // 1. Same line neighbors (移動: 駅数+1)
         const neighbors = timeMap.get(current.id);
         if (neighbors) {
             for (const [nextId, cost] of neighbors.entries()) {
                 const newTime = current.time + cost;
                 // Check if nextId is on the same line (should be, based on timeMap construction)
                 // But for safety, we assume edge traversal doesn't change line/transfers
-                updateQueue(queue, visited, nextId, newTime, current.transfers, current.lines, [nextId, ...current.path]);
+                updateQueue(queue, visited, nextId, newTime, current.transfers, current.lines, [nextId, ...current.path], current.numberOfStops + 1);
             }
         }
 
-        // 2. Transfers (Same name stations)
+        // 2. Transfers (Same name stations) (乗り換え: 駅数増減なし)
         if (current.transfers < 1) {
             const stationName = idToNameMap.get(current.id);
             if (stationName) {
@@ -242,7 +246,7 @@ export const findRoutesToDestination = (destinationName: string, maxTransfers: n
                     // Add new line to lines list if not already present
                     const newLines = current.lines.includes(newLine) ? current.lines : [...current.lines, newLine];
 
-                    updateQueue(queue, visited, siblingId, newTime, current.transfers + 1, newLines, [siblingId, ...current.path]);
+                    updateQueue(queue, visited, siblingId, newTime, current.transfers + 1, newLines, [siblingId, ...current.path], current.numberOfStops);
                 }
             }
         }
@@ -258,10 +262,11 @@ const updateQueue = (
     time: number,
     transfers: number,
     lines: string[],
-    path: string[]
+    path: string[],
+    numberOfStops: number
 ) => {
     if (!visited.has(id) || visited.get(id)! > time) {
-        queue.push({ id, time, transfers, lines, path });
+        queue.push({ id, time, transfers, lines, path, numberOfStops });
     }
 };
 
