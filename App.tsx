@@ -9,6 +9,7 @@ import { getTravelTime, getFirstLastTrains, FirstLastTrainInfo } from './service
 import { initializeNetwork, findRoutesToDestination, isNetworkInitialized, RouteResult } from './services/networkService';
 import { ScoredResult, Station, GroupedStation } from './types';
 import { ResultCard } from './components/ResultCard';
+import { DateRangePicker } from './components/DateRangePicker';
 import { METRO_LINES, MetroLine } from './constants';
 
 // const VALUE_OF_TIME_PER_MINUTE = 30; // Deprecated
@@ -445,32 +446,16 @@ const App: React.FC = () => {
                   )}
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-[1.2fr_1.2fr_0.8fr_0.8fr] gap-2">
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">チェックイン</label>
-                    <input
-                      type="date"
-                      value={selectedDate}
-                      onChange={(e) => {
-                        setSelectedDate(e.target.value);
-                        if (e.target.value >= checkOutDate) {
-                          const next = new Date(e.target.value);
-                          next.setDate(next.getDate() + 1);
-                          setCheckOutDate(next.toISOString().split('T')[0]);
-                        }
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="col-span-3 sm:col-span-1">
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">宿泊日程</label>
+                    <DateRangePicker
+                      checkInDate={selectedDate}
+                      checkOutDate={checkOutDate}
+                      onDateChange={(checkIn, checkOut) => {
+                        setSelectedDate(checkIn);
+                        setCheckOutDate(checkOut);
                       }}
-                      className="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm font-medium rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block p-2.5"
-                      disabled={loading}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">チェックアウト</label>
-                    <input
-                      type="date"
-                      value={checkOutDate}
-                      min={new Date(new Date(selectedDate).getTime() + 86400000).toISOString().split('T')[0]}
-                      onChange={(e) => setCheckOutDate(e.target.value)}
-                      className="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm font-medium rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block p-2.5"
                       disabled={loading}
                     />
                   </div>
@@ -567,8 +552,6 @@ const App: React.FC = () => {
                 <div className="text-center py-12 bg-white rounded-xl shadow-md">
                   <p className="text-gray-500 font-bold mb-2">検索結果が見つかりませんでした</p>
                   <p className="text-sm text-gray-400">
-                    指定された条件（場所・日付）で空室のあるホテルが見つからないか、<br />
-                    経路計算可能な駅周辺にホテルがありませんでした。<br />
                     日付や場所を変えて再度お試しください。
                   </p>
                 </div>
