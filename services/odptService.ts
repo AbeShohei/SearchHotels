@@ -132,9 +132,8 @@ export const getAllGroupedStations = async (): Promise<GroupedStation[]> => {
     await delay(100);
     const data = await getLineStations(line);
 
-    // エラーがある場合はログに出してスキップ
+    // エラーがある場合はスキップ
     if (data.isFallback || data.stations.length === 0) {
-      console.warn(`Skipping line ${line.name} due to fetch error or empty data`);
       continue;
     }
 
@@ -166,4 +165,22 @@ export const getAllGroupedStations = async (): Promise<GroupedStation[]> => {
   }
 
   return Array.from(groupedMap.values()).sort((a, b) => a.romaji.localeCompare(b.romaji));
+};
+
+/**
+ * 静的JSONファイルから駅データを読み込む（プリビルドされたデータ用）
+ * フォールバックとしてAPIからの取得も行う
+ */
+export const getAllGroupedStationsFromStatic = async (): Promise<GroupedStation[]> => {
+  try {
+    const response = await fetch('/data/groupedStations.json');
+    if (response.ok) {
+      const data = await response.json();
+      return data as GroupedStation[];
+    }
+  } catch (e) {
+    // フォールバック to API
+  }
+  // フォールバック
+  return getAllGroupedStations();
 };

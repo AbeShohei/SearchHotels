@@ -90,17 +90,17 @@ export const ResultCard: React.FC<ResultCardProps> = ({
       {/* Absolute Badges */}
       <div className="absolute -top-2.5 right-3 flex gap-1 z-20">
         {isOptimal && (
-          <span className="bg-orange-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md whitespace-nowrap">
+          <span className="bg-orange-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-md whitespace-nowrap">
             最適
           </span>
         )}
         {isCheapest && sortMode === 'price' && (
-          <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md whitespace-nowrap">
+          <span className="bg-red-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-md whitespace-nowrap">
             最安
           </span>
         )}
         {isHighestRated && sortMode === 'review' && (
-          <span className="bg-yellow-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md whitespace-nowrap">
+          <span className="bg-yellow-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-md whitespace-nowrap">
             最高評価
           </span>
         )}
@@ -147,7 +147,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({
           )}
 
           {/* Rank Badge */}
-          <div className={`absolute top-2 left-2 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shadow-lg ring-1 ring-white/50 ${getRankBadgeStyle()}`}>
+          <div className={`absolute top-2 left-2 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shadow-lg ring-1 ring-white/50 ${getRankBadgeStyle()}`}>
             {rank}
           </div>
         </div>
@@ -163,21 +163,21 @@ export const ResultCard: React.FC<ResultCardProps> = ({
                 {result.lines && result.lines.slice(0, 3).map((lineId, i) => {
                   const info = getLineInfo(lineId);
                   return (
-                    <span key={i} className="text-[10px] text-white px-1.5 py-0.5 rounded shadow-sm font-medium whitespace-nowrap" style={{ backgroundColor: info.color }}>
+                    <span key={i} className="text-xs text-white px-1.5 py-0.5 rounded shadow-sm font-medium whitespace-nowrap" style={{ backgroundColor: info.color }}>
                       {info.name}
                     </span>
                   );
                 })}
-                <span className="text-sm font-bold text-gray-700 whitespace-nowrap">{result.name}駅</span>
+                <span className="text-base font-bold text-gray-700 whitespace-nowrap">{result.name}駅</span>
 
                 {result.hotel.reviewAverage && (
-                  <span className="text-[10px] text-orange-500 font-bold bg-orange-50 px-1.5 py-0.5 rounded whitespace-nowrap">
+                  <span className="text-xs text-orange-500 font-bold bg-orange-50 px-1.5 py-0.5 rounded whitespace-nowrap">
                     ★{result.hotel.reviewAverage.toFixed(1)}
                   </span>
                 )}
               </div>
 
-              <h3 className="font-bold text-gray-800 text-sm sm:text-base leading-tight tracking-tight line-clamp-1">
+              <h3 className="font-bold text-gray-800 text-base sm:text-lg leading-tight tracking-tight line-clamp-1">
                 {result.hotel.hotelName}
               </h3>
             </div>
@@ -186,19 +186,19 @@ export const ResultCard: React.FC<ResultCardProps> = ({
             <div className="shrink-0 ml-1">
               {sortMode === 'cospa' && result.cospaIndex ? (
                 <div className="text-right">
-                  <div className="text-[10px] text-gray-400 font-bold">タイパ</div>
-                  <div className="text-sm font-bold text-green-600 leading-none">{result.cospaIndex.toLocaleString()}<span className="text-[10px] ml-0.5">pt</span></div>
+                  <div className="text-sm text-gray-400 font-bold">タイパ</div>
+                  <div className="text-lg font-bold text-green-600 leading-none">{result.cospaIndex.toLocaleString()}<span className="text-sm ml-0.5">pt</span></div>
                 </div>
               ) : sortMode === 'review' && result.hotel.reviewAverage ? (
                 <div className="bg-yellow-50 px-1.5 py-0.5 rounded text-right border border-yellow-100">
-                  <div className="text-[9px] text-yellow-600 font-bold whitespace-nowrap">評価スコア</div>
-                  <div className="text-xs font-bold text-yellow-700 whitespace-nowrap">★{result.hotel.reviewAverage.toFixed(1)}</div>
+                  <div className="text-sm text-yellow-600 font-bold whitespace-nowrap">評価スコア</div>
+                  <div className="text-lg font-bold text-yellow-700 whitespace-nowrap">★{result.hotel.reviewAverage.toFixed(1)}</div>
                 </div>
               ) : (
                 totalSavings && totalSavings > 0 ? (
                   <div className="bg-green-50 px-1.5 py-0.5 rounded text-right border border-green-100">
-                    <div className="text-[9px] text-green-600 font-bold whitespace-nowrap">お得額</div>
-                    <div className="text-xs font-bold text-green-700 whitespace-nowrap">+{totalSavings.toLocaleString()}円</div>
+                    <div className="text-sm text-green-600 font-bold whitespace-nowrap">お得額</div>
+                    <div className="text-lg font-bold text-green-700 whitespace-nowrap">+{totalSavings.toLocaleString()}円</div>
                   </div>
                 ) : null
               )}
@@ -206,22 +206,22 @@ export const ResultCard: React.FC<ResultCardProps> = ({
           </div>
 
           {/* Details Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs bg-gray-50 p-2 rounded-lg border border-gray-100 mb-1.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-base bg-gray-50 p-3 rounded-lg border border-gray-100 mb-1.5">
             {/* Cost Detail */}
             <div>
-              <div className="font-bold text-gray-600 mb-0.5 border-b border-gray-200 pb-0.5 text-[11px]">料金内訳 (1名あたり)</div>
-              <div className="flex justify-between text-gray-500 mb-0.5 text-[10px]">
+              <div className="font-bold text-gray-600 mb-0.5 border-b border-gray-200 pb-0.5 text-sm">料金内訳 (1名あたり)</div>
+              <div className="flex justify-between text-gray-500 mb-0.5 text-sm">
                 <span>宿泊費:</span> <span>¥{pricePerPerson.toLocaleString()}</span>
               </div>
               <div className="flex flex-col mb-0.5">
-                <div className="flex justify-between text-gray-500 text-[10px]">
+                <div className="flex justify-between text-gray-500 text-sm">
                   <span>交通費(往復):</span> <span>¥{(transportPerPerson * nightCount).toLocaleString()}</span>
                 </div>
-                <div className="text-[9px] text-gray-400 text-right leading-none">
+                <div className="text-xs text-gray-400 text-right leading-none">
                   (IC: ¥{(icTransportPerPerson * nightCount).toLocaleString()})
                 </div>
               </div>
-              <div className="flex justify-between font-bold text-gray-700 border-t border-gray-200 mt-0.5 pt-0.5 text-[11px]">
+              <div className="flex justify-between font-bold text-gray-700 border-t border-gray-200 mt-0.5 pt-0.5 text-sm">
                 <span>1名合計:</span> <span>¥{costPerPerson.toLocaleString()}</span>
               </div>
             </div>
@@ -229,7 +229,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({
             {/* Train Info */}
             <div className="sm:pl-2 sm:border-l sm:border-gray-200 pt-1 sm:pt-0 border-t sm:border-t-0 border-gray-200 mt-1 sm:mt-0 flex flex-col justify-between">
               <div>
-                <div className="font-bold text-gray-600 mb-0.5 border-b border-gray-200 pb-0.5 text-[11px]">移動情報</div>
+                <div className="font-bold text-gray-600 mb-0.5 border-b border-gray-200 pb-0.5 text-sm">移動情報</div>
                 {trainSchedule ? (
                   (() => {
                     const formatDate = (dateStr: string, addDays: number = 0) => {
@@ -244,39 +244,39 @@ export const ResultCard: React.FC<ResultCardProps> = ({
                       <>
                         <div className="grid grid-cols-[24px_1fr] gap-x-1 mb-1 items-center">
                           <div className="flex flex-col items-center">
-                            <span className="bg-red-100 text-red-600 px-0.5 rounded text-[9px] text-center whitespace-nowrap w-full">終電</span>
-                            <span className="text-[8px] text-gray-400 leading-none mt-0.5">{formatDate(selectedDate)}</span>
+                            <span className="bg-red-100 text-red-600 px-0.5 rounded text-[10px] text-center whitespace-nowrap w-full">終電</span>
+                            <span className="text-[9px] text-gray-400 leading-none mt-0.5">{formatDate(selectedDate)}</span>
                           </div>
-                          <div className="flex justify-center gap-2 items-center text-[10px]">
-                            <span className="font-mono text-gray-700 leading-none">{trainSchedule.lastTrain.departureTime}<span className="text-[9px] text-gray-400 ml-0.5">発</span></span>
+                          <div className="flex justify-center gap-2 items-center text-sm">
+                            <span className="font-mono text-gray-700 leading-none">{trainSchedule.lastTrain.departureTime}<span className="text-[10px] text-gray-400 ml-0.5">発</span></span>
                             <span className="text-gray-300 transform scale-x-50">→</span>
-                            <span className="font-mono text-gray-700 leading-none">{trainSchedule.lastTrain.arrivalTime}<span className="text-[9px] text-gray-400 ml-0.5">着</span></span>
+                            <span className="font-mono text-gray-700 leading-none">{trainSchedule.lastTrain.arrivalTime}<span className="text-[10px] text-gray-400 ml-0.5">着</span></span>
                           </div>
                         </div>
                         <div className="grid grid-cols-[24px_1fr] gap-x-1 items-center">
                           <div className="flex flex-col items-center">
-                            <span className="bg-blue-100 text-blue-600 px-0.5 rounded text-[9px] text-center whitespace-nowrap w-full">始発</span>
-                            <span className="text-[8px] text-gray-400 leading-none mt-0.5">{formatDate(selectedDate, 1)}</span>
+                            <span className="bg-blue-100 text-blue-600 px-0.5 rounded text-[10px] text-center whitespace-nowrap w-full">始発</span>
+                            <span className="text-[9px] text-gray-400 leading-none mt-0.5">{formatDate(selectedDate, 1)}</span>
                           </div>
-                          <div className="flex justify-center gap-2 items-center text-[10px]">
-                            <span className="font-mono text-gray-700 leading-none">{trainSchedule.firstTrain.departureTime}<span className="text-[9px] text-gray-400 ml-0.5">発</span></span>
+                          <div className="flex justify-center gap-2 items-center text-sm">
+                            <span className="font-mono text-gray-700 leading-none">{trainSchedule.firstTrain.departureTime}<span className="text-[10px] text-gray-400 ml-0.5">発</span></span>
                             <span className="text-gray-300 transform scale-x-50">→</span>
-                            <span className="font-mono text-gray-700 leading-none">{trainSchedule.firstTrain.arrivalTime}<span className="text-[9px] text-gray-400 ml-0.5">着</span></span>
+                            <span className="font-mono text-gray-700 leading-none">{trainSchedule.firstTrain.arrivalTime}<span className="text-[10px] text-gray-400 ml-0.5">着</span></span>
                           </div>
                         </div>
                       </>
                     );
                   })()
                 ) : (
-                  <div className="text-gray-400 text-center py-1 text-[10px]">- 時刻表取得中 -</div>
+                  <div className="text-gray-400 text-center py-1 text-sm">- 時刻表取得中 -</div>
                 )}
               </div>
 
               {/* Moved Travel Time Info */}
               <div className="mt-1 pt-1 border-t border-gray-200">
-                <div className="font-bold text-gray-700 text-[10px] flex flex-wrap items-baseline gap-1 leading-tight justify-end sm:justify-start">
+                <div className="font-bold text-gray-700 text-sm flex flex-wrap items-baseline gap-1 leading-tight justify-end sm:justify-start">
                   <span className="whitespace-nowrap">⏱️約{result.trainTime + result.walkTime}分</span>
-                  <span className="text-[9px] text-gray-400 font-normal whitespace-nowrap">
+                  <span className="text-xs text-gray-400 font-normal whitespace-nowrap">
                     ({result.trainTime > 0 ? `電車${result.trainTime}分/${numberOfStops}駅+` : ''}徒歩{result.walkTime}分)
                   </span>
                 </div>
@@ -316,15 +316,15 @@ export const ResultCard: React.FC<ResultCardProps> = ({
                   if (extraRidesNeeded <= 0) {
                     // Already worthwhile with just round trips
                     return (
-                      <div className="bg-pink-50 px-2 py-0.5 rounded border border-pink-100 text-[9px] font-bold text-pink-600 animate-pulse">
-                        🎫 東京メトロ{ticketLabel}がお得！
+                      <div className="bg-pink-50 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded border border-pink-100 text-xs sm:text-sm font-bold text-pink-600 animate-pulse">
+                        🎫 {ticketLabel}がお得！
                       </div>
                     );
                   } else {
                     // Need extra rides to break even
                     return (
-                      <div className="bg-blue-50 px-2 py-0.5 rounded border border-blue-100 text-[9px] font-bold text-blue-600">
-                        💡往復+{extraRidesNeeded}回乗るなら{ticketLabel}がお得！
+                      <div className="bg-blue-50 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded border border-blue-100 text-xs sm:text-sm font-bold text-blue-600">
+                        💡往復+{extraRidesNeeded}回なら{ticketLabel}がお得！
                       </div>
                     );
                   }
@@ -335,12 +335,12 @@ export const ResultCard: React.FC<ResultCardProps> = ({
             <div className="flex flex-col items-end shrink-0">
               <div className="flex items-center gap-1 mb-0 leading-none">
                 {sortMode === 'price' && isCheapest && (
-                  <span className="text-[10px] text-red-500 font-bold animate-pulse whitespace-nowrap">最安値!</span>
+                  <span className="text-xs text-red-500 font-bold animate-pulse whitespace-nowrap">最安値!</span>
                 )}
-                <div className="text-[9px] text-gray-500 font-bold">合計支払い額</div>
+                <div className="text-xs text-gray-500 font-bold">合計支払い額</div>
               </div>
               <div className="flex items-baseline justify-end gap-1">
-                <span className="text-xs text-gray-600 font-bold whitespace-nowrap mr-0.5">{nightCount}泊{adultCount}名</span>
+                <span className="text-sm text-gray-600 font-bold whitespace-nowrap mr-0.5">{nightCount}泊{adultCount}名</span>
                 <span className="text-xl font-bold text-gray-800 tracking-tight leading-none">
                   ¥{totalCost.toLocaleString()}
                 </span>

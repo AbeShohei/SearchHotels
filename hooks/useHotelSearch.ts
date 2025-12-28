@@ -81,12 +81,16 @@ export const useHotelSearch = (): UseHotelSearchResult => {
     const [showToast, setShowToast] = useState(false);
     const [toastMessage, setToastMessage] = useState('');
 
-    // Initialize network and load stations
+    // Initialize network and load stations (from static JSON or API fallback)
     useEffect(() => {
         const init = async () => {
-            const stations = await odpt.getAllGroupedStations();
+            // Try static data first, fallback to API
+            const { getAllGroupedStationsFromStatic } = await import('../services/odptService');
+            const { initializeNetworkFromStatic } = await import('../services/networkService');
+
+            const stations = await getAllGroupedStationsFromStatic();
             setGroupedStations(stations);
-            await initializeNetwork();
+            await initializeNetworkFromStatic();
             setIsNetworkLoaded(true);
         };
         init();

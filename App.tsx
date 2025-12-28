@@ -8,12 +8,15 @@ import { Toast } from './components/Layout/Toast';
 import { SearchForm } from './components/Search/SearchForm';
 import { ResultList } from './components/Result/ResultList';
 import { LiquidBackground } from './components/Layout/LiquidBackground';
+import { HomePage } from './components/Layout/HomePage';
 
 /**
  * Main application component.
  * Uses useHotelSearch hook for search functionality.
  */
 const App: React.FC = () => {
+  // Show home page initially
+  const [showHome, setShowHome] = useState(true);
   // Use custom hook for search functionality
   const {
     groupedStations,
@@ -104,11 +107,12 @@ const App: React.FC = () => {
       <LiquidBackground />
       <Header />
       <main className="max-w-3xl mx-auto p-4 -mt-12 relative z-30">
-        {!isNetworkLoaded ? (
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-500">路線データを取得中...</p>
-          </div>
+        {showHome ? (
+          <HomePage
+            isLoading={!isNetworkLoaded}
+            isReady={isNetworkLoaded}
+            onStart={() => setShowHome(false)}
+          />
         ) : (
           <>
             <SearchForm

@@ -133,6 +133,49 @@ export const initializeNetwork = async (): Promise<void> => {
     // console.log('Network initialized');
 };
 
+/**
+ * 静的JSONファイルからネットワークを初期化（プリビルドされたデータ用）
+ * フォールバックとしてAPIからの取得も行う
+ */
+export const initializeNetworkFromStatic = async (): Promise<void> => {
+    if (isInitialized) return;
+
+    try {
+        const response = await fetch('/data/networkData.json');
+        if (response.ok) {
+            const data = await response.json();
+
+            // timeMap復元
+            Object.entries(data.timeMap).forEach(([fromId, toMap]) => {
+                timeMap.set(fromId, new Map(Object.entries(toMap as Record<string, number>)));
+            });
+
+            // nameToIdsMap復元
+            Object.entries(data.nameToIds).forEach(([name, ids]) => {
+                nameToIdsMap.set(name, ids as string[]);
+            });
+
+            // idToLineMap復元
+            Object.entries(data.idToLine).forEach(([id, lineId]) => {
+                idToLineMap.set(id, lineId as string);
+            });
+
+            // idToNameMap復元
+            Object.entries(data.idToName).forEach(([id, name]) => {
+                idToNameMap.set(id, name as string);
+            });
+
+            isInitialized = true;
+            return;
+        }
+    } catch (e) {
+        // フォールバック to API
+    }
+
+    // フォールバック
+    await initializeNetwork();
+};
+
 const setEdgeWeight = (fromId: string, toId: string, minutes: number) => {
     if (!timeMap.has(fromId)) {
         timeMap.set(fromId, new Map());
@@ -165,7 +208,6 @@ export interface RouteResult {
  */
 export const findRoutesToDestination = (destinationName: string, maxTransfers: number = 1): Map<string, RouteResult> => {
     if (!isInitialized) {
-        console.warn('Network not initialized');
         return new Map();
     }
 
