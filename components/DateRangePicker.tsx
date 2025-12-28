@@ -233,12 +233,18 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
 
                             {/* Selected Dates Display */}
                             <div className="flex items-center gap-2 text-xs">
-                                <div className={`flex-1 p-2 rounded-xl transition-all ${!selectingCheckOut ? 'bg-blue-50 border-2 border-blue-500 shadow-sm' : 'bg-white border border-gray-200'}`}>
+                                <div
+                                    onClick={() => setSelectingCheckOut(false)}
+                                    className={`flex-1 p-2 rounded-xl transition-all cursor-pointer ${!selectingCheckOut ? 'bg-blue-50 border-2 border-blue-500 shadow-sm' : 'bg-white border border-gray-200 hover:bg-gray-50'}`}
+                                >
                                     <div className="text-[10px] text-gray-500 font-bold mb-0.5 whitespace-nowrap">チェックイン</div>
                                     <div className="font-bold text-gray-900 text-sm">{formatDate(tempCheckIn)}</div>
                                 </div>
                                 <span className="text-gray-300 font-bold">→</span>
-                                <div className={`flex-1 p-2 rounded-xl transition-all ${selectingCheckOut ? 'bg-blue-50 border-2 border-blue-500 shadow-sm' : 'bg-white border border-gray-200'}`}>
+                                <div
+                                    onClick={() => setSelectingCheckOut(true)}
+                                    className={`flex-1 p-2 rounded-xl transition-all cursor-pointer ${selectingCheckOut ? 'bg-blue-50 border-2 border-blue-500 shadow-sm' : 'bg-white border border-gray-200 hover:bg-gray-50'}`}
+                                >
                                     <div className="text-[10px] text-gray-500 font-bold mb-0.5 whitespace-nowrap">チェックアウト</div>
                                     <div className="font-bold text-gray-900 text-sm">{formatDate(tempCheckOut)}</div>
                                 </div>

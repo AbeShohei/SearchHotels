@@ -63,7 +63,7 @@ export const SearchForm: React.FC<SearchFormProps> = ({
                     />
 
                     {showSuggestions && suggestions.length > 0 && (
-                        <div className="absolute z-10 w-full mt-2 neu-flat bg-white rounded-xl max-h-60 overflow-y-auto">
+                        <div className="absolute z-10 w-full mt-2 bg-white rounded-xl shadow-xl border border-gray-200 max-h-60 overflow-y-auto">
                             {suggestions.map((station) => (
                                 <button
                                     key={station.name}
