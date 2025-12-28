@@ -7,8 +7,8 @@ export const Header: React.FC = () => {
             <div
                 className="absolute inset-0 bg-white/60 backdrop-blur-xl -z-10"
                 style={{
-                    maskImage: 'radial-gradient(ellipse 200% 100% at 50% 125%, transparent 50%, black 50.1%)',
-                    WebkitMaskImage: 'radial-gradient(ellipse 200% 100% at 50% 125%, transparent 50%, black 50.1%)',
+                    maskImage: 'radial-gradient(ellipse 150% 100% at 50% 115%, transparent 50%, black 50.1%)',
+                    WebkitMaskImage: 'radial-gradient(ellipse 150% 100% at 50% 115%, transparent 50%, black 50.1%)',
                     borderRadius: '0 0 20px 20px' // Keep slight rounding at corners if mask doesn't cut them
                 }}
             />

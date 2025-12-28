@@ -87,7 +87,7 @@ const App: React.FC = () => {
     <div className="min-h-screen pb-12">
       <LiquidBackground />
       <Header />
-      <main className="max-w-3xl mx-auto p-4">
+      <main className="max-w-3xl mx-auto p-4 -mt-12 relative z-30">
         {!isNetworkLoaded ? (
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>

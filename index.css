@@ -1,9 +1,7 @@
 /* Custom fonts for Neumorphism (Soft & Rounded) */
 @import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@300;400;500;700&family=Nunito:wght@400;600;700&display=swap');
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 /* Clean White Background */
 body {
