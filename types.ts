@@ -48,6 +48,7 @@ export interface ScoredResult extends Station {
   savedMoney?: number;   // 浮いた金額 (円)
   extraTime?: number;    // 追加時間 (分)
   cospaIndex?: number;   // コスパ指標 (円/分)
+  isBaseline?: boolean;  // 基準ホテルかどうか
 }
 
 

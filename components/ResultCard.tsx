@@ -69,13 +69,33 @@ export const ResultCard: React.FC<ResultCardProps> = ({
     return `${d.getMonth() + 1}/${d.getDate()}`;
   })() : '';
 
+  // Determine if this card should be highlighted (has a special tag)
+  const isHighlighted = isOptimal ||
+    (isCheapest && sortMode === 'price') ||
+    (isHighestRated && sortMode === 'review');
+
+  // Get highlight color based on mode
+  const getHighlightBorderColor = () => {
+    if (isOptimal) return 'border-orange-400';
+    if (isCheapest && sortMode === 'price') return 'border-red-400';
+    if (isHighestRated && sortMode === 'review') return 'border-yellow-400';
+    return 'border-gray-200';
+  };
+
+  const getRankBgColor = () => {
+    if (isOptimal) return 'bg-orange-100 text-orange-600';
+    if (isCheapest && sortMode === 'price') return 'bg-red-100 text-red-600';
+    if (isHighestRated && sortMode === 'review') return 'bg-yellow-100 text-yellow-600';
+    return 'bg-gray-100 text-gray-500';
+  };
+
   return (
     <a
       href={result.hotel.hotelUrl || '#'}
       target="_blank"
       rel="noopener noreferrer"
-      className={`relative p-6 rounded-xl border transition-all duration-300 block cursor-pointer ${isOptimal
-        ? 'bg-white border-orange-400 shadow-lg scale-[1.02] z-10 hover:scale-[1.03]'
+      className={`relative p-6 rounded-xl border transition-all duration-300 block cursor-pointer ${isHighlighted
+        ? `bg-white ${getHighlightBorderColor()} shadow-lg scale-[1.02] z-10 hover:scale-[1.03]`
         : 'bg-white border-gray-200 hover:shadow-lg hover:border-gray-300'
         }`}
     >
@@ -101,7 +121,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({
 
       <div className="flex flex-col sm:flex-row justify-between items-start mb-2 gap-3">
         <div className="flex items-center space-x-3 w-full">
-          <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold shrink-0 ${isOptimal ? 'bg-orange-100 text-orange-600' : 'bg-gray-100 text-gray-500'
+          <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold shrink-0 ${getRankBgColor()
             }`}>
             #{rank}
           </div>
@@ -153,9 +173,9 @@ export const ResultCard: React.FC<ResultCardProps> = ({
                     <span className="text-xs text-green-600 font-bold mt-0.5">+{(totalSavings / 100).toFixed(2)} ★</span>
                   ) : totalSavings !== undefined && totalSavings < 0 ? (
                     <span className="text-xs text-gray-400 mt-0.5">{(totalSavings / 100).toFixed(2)} ★</span>
-                  ) : (
-                    <span className="text-xs text-gray-500 mt-0.5">基準地</span>
-                  )}
+                  ) : result.isBaseline ? (
+                    <span className="text-xs text-gray-500 mt-0.5">基準</span>
+                  ) : null}
                 </div>
               ) : (
                 <div className="text-lg font-bold text-gray-400">レビューなし</div>
@@ -167,7 +187,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({
               {result.savedMoney !== undefined && result.extraTime !== undefined ? (
                 <>
                   {/* 基準ホテルは特別アイコン */}
-                  {result.extraTime === 0 && result.savedMoney === 0 ? (
+                  {result.isBaseline ? (
                     <div className="flex flex-col items-end">
                       <div className="text-2xl font-bold text-gray-400">-</div>
                       <span className="text-xs text-gray-500 mt-0.5">基準</span>
@@ -175,7 +195,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({
                   ) : (
                     <div className="flex flex-col items-end">
                       <div className={`text-2xl font-bold ${(result.cospaIndex ?? 0) > 0 ? 'text-green-600' :
-                          (result.cospaIndex ?? 0) < 0 ? 'text-red-500' : 'text-gray-500'
+                        (result.cospaIndex ?? 0) < 0 ? 'text-red-500' : 'text-gray-500'
                         }`}>
                         {result.cospaIndex === Infinity ? '-' : result.cospaIndex?.toLocaleString() || '0'}
                       </div>
@@ -219,13 +239,13 @@ export const ResultCard: React.FC<ResultCardProps> = ({
                       <span className="text-[10px] text-gray-400 mt-0.5">1名あたり {Math.abs(savingsPerPerson!).toLocaleString()}円 割高</span>
                     </div>
                   </>
-                ) : (
+                ) : result.isBaseline ? (
                   <>
                     <div className="text-lg font-bold text-gray-500">
-                      基準地
+                      基準
                     </div>
                   </>
-                )}
+                ) : null}
               </>
             ) : (
               <div className="text-lg font-bold text-gray-400">

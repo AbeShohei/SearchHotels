@@ -66,7 +66,7 @@ export const ResultList: React.FC<ResultListProps> = ({ results, sortMode, setSo
             {results.map((result, index) => {
                 const price = result.totalCost;
                 const isCheapest = price === minPrice;
-                const isOptimal = index === 0;
+                const isOptimal = sortMode === 'cospa' && index === 0;
                 const isHighestRated = (result.hotel.reviewAverage || 0) === maxReview && maxReview > 0;
 
                 // 代表路線の色を使用
