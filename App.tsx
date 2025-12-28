@@ -11,6 +11,7 @@ import { calculateAndSortResults } from './utils/sort';
 
 import { Header } from './components/Layout/Header';
 import { ScrollToTopButton } from './components/Layout/ScrollToTopButton';
+import { Toast } from './components/Layout/Toast';
 import { SearchForm } from './components/Search/SearchForm';
 import { ResultList } from './components/Result/ResultList';
 
@@ -19,7 +20,10 @@ const App: React.FC = () => {
   const [isNetworkLoaded, setIsNetworkLoaded] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState('');
+  const [progressPercent, setProgressPercent] = useState(0);
   const [results, setResults] = useState<ExtendedResult[]>([]);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
 
   // Date input
   const [selectedDate, setSelectedDate] = useState<string>(() => {
@@ -117,6 +121,7 @@ const App: React.FC = () => {
     setSearchedParams({ adultCount, nightCount: diff, roomCount, selectedDate });
     setResults([]);
     setHasSearched(true);
+    setProgressPercent(0);
 
     // 1. Route Calculation
     const routeResults = findRoutesToDestination(target.name, 0);
@@ -163,6 +168,8 @@ const App: React.FC = () => {
 
     for (const [name, route] of sortedRoutes.entries()) {
       processedCount++;
+      const percent = Math.round((processedCount / totalStations) * 100);
+      setProgressPercent(percent);
       setLoadingProgress(`周辺駅を検索中... (${processedCount}/${totalStations})`);
 
       const group = groupedStations.find(g => g.name === name);
@@ -275,6 +282,11 @@ const App: React.FC = () => {
     setResults(finalSorted);
     setLoading(false);
     setLoadingProgress('');
+    setProgressPercent(100);
+
+    // Show completion toast
+    setToastMessage(`検索完了！ ${finalSorted.length}件のホテルが見つかりました`);
+    setShowToast(true);
   };
 
   const isSearchable = isNetworkLoaded && (!!selectedStation || groupedStations.some(s => s.name === stationInput));
@@ -312,6 +324,7 @@ const App: React.FC = () => {
               isSearchable={isSearchable}
               handleSearch={handleSearch}
               loadingProgress={loadingProgress}
+              progressPercent={progressPercent}
             />
 
             <ResultList
@@ -333,6 +346,12 @@ const App: React.FC = () => {
         )}
       </main>
       <ScrollToTopButton />
+      <Toast
+        message={toastMessage}
+        isVisible={showToast}
+        onClose={() => setShowToast(false)}
+        type="success"
+      />
     </div>
   );
 };

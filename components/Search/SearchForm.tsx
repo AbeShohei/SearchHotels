@@ -28,6 +28,7 @@ interface SearchFormProps {
     isSearchable: boolean;
     handleSearch: () => void;
     loadingProgress: string;
+    progressPercent: number;
 }
 
 export const SearchForm: React.FC<SearchFormProps> = ({
@@ -35,7 +36,7 @@ export const SearchForm: React.FC<SearchFormProps> = ({
     showSuggestions, setShowSuggestions, handleStationSelect, suggestions,
     selectedDate, setSelectedDate, checkOutDate, setCheckOutDate,
     adultCount, setAdultCount, roomCount, setRoomCount,
-    loading, isSearchable, handleSearch, loadingProgress
+    loading, isSearchable, handleSearch, loadingProgress, progressPercent
 }) => {
     return (
         <div className="bg-white rounded-xl shadow-md p-5 mb-6">
@@ -130,20 +131,56 @@ export const SearchForm: React.FC<SearchFormProps> = ({
                 <button
                     onClick={handleSearch}
                     disabled={loading || !isSearchable}
-                    className={`w-full px-8 py-3 rounded-lg font-bold text-white shadow-md transition-all 
-            ${loading || !isSearchable
-                            ? 'bg-gray-400 cursor-not-allowed'
-                            : 'bg-blue-600 hover:bg-blue-700 hover:shadow-lg'
+                    className={`relative w-full px-8 py-3 rounded-lg font-bold text-white shadow-md transition-all overflow-hidden
+            ${loading
+                            ? 'bg-blue-300 cursor-wait'
+                            : !isSearchable
+                                ? 'bg-gray-400 cursor-not-allowed'
+                                : 'bg-blue-600 hover:bg-blue-700 hover:shadow-lg'
                         }`}
                 >
-                    {loading ? (
-                        <div className="flex items-center justify-center gap-2">
-                            <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
-                            <span>{loadingProgress || 'ホテル検索中...'}</span>
-                        </div>
-                    ) : '検索開始'}
+                    {/* Train animation */}
+                    {loading && (
+                        <>
+                            {/* Track Background */}
+                            <div className="absolute top-0 left-0 w-full h-full bg-black/5" />
+
+                            {/* Progress Fill (Orange - Chuo Line color) */}
+                            <div
+                                className="absolute top-0 left-0 h-full bg-orange-500/30 transition-all duration-1000 ease-linear"
+                                style={{ width: `${progressPercent}%` }}
+                            />
+
+                            {/* Running Train (8 cars) 
+                                - Positioned at bottom
+                                - Cleanly transitions with progress
+                                - translate-x-full ensures the train is "behind" the leading edge (on top of the processed part)
+                            */}
+                            <div
+                                className="absolute bottom-0 text-xl whitespace-nowrap transition-all duration-1000 ease-linear"
+                                style={{
+                                    left: `${progressPercent}%`,
+                                    transform: 'translateX(-100%)'
+                                }}
+                            >
+                                🚃🚃🚃🚃🚃🚃🚃🚃
+                            </div>
+                        </>
+                    )}
+
+                    {/* Button content */}
+                    <span className="relative z-10 mb-2 block">
+                        {loading ? (
+                            <div className="flex items-center justify-center gap-2">
+                                <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
+                                <span>{loadingProgress || 'ホテル検索中...'}</span>
+                            </div>
+                        ) : '検索開始'}
+                    </span>
                 </button>
             </div>
+
+
         </div>
     );
 };
