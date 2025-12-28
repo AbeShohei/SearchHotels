@@ -18,20 +18,20 @@ body {
 
 /* 凸 (Card, Button default) -> Glass Panel */
 .neu-flat {
-  background: rgba(255, 255, 255, 0.65);
-  /* More opaque for readability */
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
 }
 
 /* 凸 Small -> Glass Panel */
 .neu-flat-sm {
-  background: rgba(255, 255, 255, 0.5);
-  box-shadow: 0 4px 16px 0 rgba(31, 38, 135, 0.1);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 16px 0 rgba(31, 38, 135, 0.15);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
 }
 
 /* 凹 (Input) -> Inner Glass / Darker area */
