@@ -158,3 +158,83 @@ export const calculateAndSortResults = (
         return sorted;
     }
 };
+
+/**
+ * Process results with baseline comparison but WITHOUT sorting.
+ * Used during incremental search updates to show processed data while maintaining insertion order.
+ */
+export const processResultsWithoutSort = (
+    results: ExtendedResult[],
+    mode: SortMode,
+    targetStationName: string
+): ExtendedResult[] => {
+    // Deep copy and reset calculated fields
+    const processed = results.map(r => ({
+        ...r,
+        savings: undefined as number | undefined,
+        cospaIndex: 0,
+        savedMoney: 0,
+        extraTime: 0,
+        isBaseline: false
+    }));
+
+    if (processed.length === 0) return processed;
+
+    // Find baseline (same logic as calculateAndSortResults)
+    const baselineResult = findBaselineResult(processed, targetStationName);
+    const baselineId = baselineResult?.id;
+
+    if (mode === 'review') {
+        const bestReview = baselineResult?.hotel.reviewAverage || processed[0]?.hotel.reviewAverage || 0;
+        processed.forEach(r => {
+            r.savings = ((r.hotel.reviewAverage || 0) - bestReview) * 100;
+            r.isBaseline = r.id === baselineId;
+        });
+    } else if (mode === 'cospa') {
+        if (baselineResult) {
+            const sameStationHotels = processed.filter(r => r.name === baselineResult.name);
+            const baselineHotel = sameStationHotels.reduce((min, h) => {
+                const minTime = min.trainTime + min.walkTime;
+                const hTime = h.trainTime + h.walkTime;
+                if (hTime < minTime) return h;
+                if (hTime === minTime && h.hotel.price < min.hotel.price) return h;
+                return min;
+            }, sameStationHotels[0]);
+
+            const cospaBaselineId = baselineHotel.id;
+            const baselineCost = baselineHotel.hotel.price;
+            const baselineTravelTime = baselineHotel.trainTime + baselineHotel.walkTime;
+
+            processed.forEach(r => {
+                let totalTravelTime = r.trainTime + r.walkTime;
+                const hotelCostWithFare = r.hotel.price + (r.icFare * 2);
+
+                if (r.id !== cospaBaselineId && totalTravelTime === baselineTravelTime) {
+                    totalTravelTime += 1;
+                }
+
+                r.savedMoney = baselineCost - hotelCostWithFare;
+                r.extraTime = totalTravelTime - baselineTravelTime;
+
+                if (r.extraTime > 0) {
+                    r.cospaIndex = Math.round(r.savedMoney / r.extraTime);
+                } else {
+                    r.cospaIndex = 0;
+                }
+
+                r.isBaseline = r.id === cospaBaselineId;
+            });
+        }
+    } else {
+        // price mode
+        if (baselineResult) {
+            processed.forEach(r => {
+                r.savings = baselineResult.totalCost - r.totalCost;
+                r.isBaseline = r.id === baselineId;
+            });
+        }
+    }
+
+    // Return WITHOUT sorting - maintains insertion order
+    return processed;
+};

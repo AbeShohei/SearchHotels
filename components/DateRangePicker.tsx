@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { motion } from 'framer-motion';
 
 interface DateRangePickerProps {
     checkInDate: string;
@@ -135,31 +136,32 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
             const inRange = isDateInRange(dateStr);
 
             let bgClass = 'hover:bg-gray-100';
-            let textClass = 'text-gray-800';
+            let textClass = 'text-gray-900 font-bold'; // Darker text by default
 
             if (isPast) {
                 bgClass = '';
-                textClass = 'text-gray-300 cursor-not-allowed';
+                textClass = 'text-gray-400 font-normal cursor-not-allowed'; // Slightly darker for visibility
             } else if (isStart) {
-                bgClass = 'bg-blue-600 text-white rounded-l-full';
+                bgClass = 'bg-blue-600 text-white rounded-l-xl shadow-md z-10'; // Stronger highlight
                 textClass = 'text-white font-bold';
             } else if (isEnd) {
-                bgClass = 'bg-blue-600 text-white rounded-r-full';
+                bgClass = 'bg-blue-600 text-white rounded-r-xl shadow-md z-10'; // Stronger highlight
                 textClass = 'text-white font-bold';
             } else if (inRange) {
-                bgClass = 'bg-blue-100';
-                textClass = 'text-blue-800';
+                bgClass = 'bg-blue-200'; // Darker blue for range
+                textClass = 'text-blue-900 font-bold';
             }
 
             days.push(
-                <button
+                <motion.button
                     key={day}
                     onClick={() => !isPast && handleDateClick(dateStr)}
                     disabled={isPast}
-                    className={`h-8 w-full flex items-center justify-center text-xs ${bgClass} ${textClass} transition-colors`}
+                    whileTap={{ scale: 0.95 }}
+                    className={`h-9 w-full flex items-center justify-center text-sm ${bgClass} ${textClass} transition-all relative`}
                 >
                     {day}
-                </button>
+                </motion.button>
             );
         }
 
@@ -187,12 +189,13 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
     }, [tempCheckIn, tempCheckOut]);
 
     return (
-        <>
+        <div className="relative">
             {/* Trigger Button */}
-            <button
+            <motion.button
                 onClick={handleOpen}
                 disabled={disabled}
-                className={`w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm font-medium rounded-lg p-2.5 text-left flex items-center justify-between gap-2 ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:border-blue-500 focus:ring-2 focus:ring-blue-500'}`}
+                whileTap={{ scale: 0.95 }}
+                className={`w-full neu-pressed text-sm font-medium rounded-xl p-3 text-left flex items-center justify-between gap-2 transition-all ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-white/40'}`}
             >
                 <div className="flex items-center gap-2 flex-1 min-w-0">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -205,91 +208,101 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
                 <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded shrink-0">
                     {nights}泊
                 </span>
-            </button>
+            </motion.button>
 
-            {/* Modal Overlay */}
+            {/* Popover */}
             {isOpen && (
-                <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black bg-opacity-50" onClick={handleClose}>
+                <>
+                    {/* Transparent Backdrop for click-outside */}
+                    <div className="fixed inset-0 z-40 bg-black/20 sm:bg-transparent" onClick={handleClose} />
+
                     <div
-                        className="bg-white rounded-t-xl sm:rounded-xl shadow-xl w-full sm:max-w-sm"
+                        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95%] max-w-[350px] z-50 bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-100 animate-in fade-in zoom-in-95 duration-200 sm:absolute sm:top-full sm:translate-y-0 sm:mt-2"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Header */}
-                        <div className="bg-white border-b border-gray-200 p-3 rounded-t-xl">
-                            <div className="flex justify-between items-center mb-2">
-                                <h3 className="text-base font-bold text-gray-800">日程を選択</h3>
-                                <button onClick={handleClose} className="text-gray-400 hover:text-gray-600 p-1">
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <div className="border-b border-gray-100 p-4 bg-gray-50/50">
+                            <div className="flex justify-between items-center mb-3">
+                                <h3 className="text-base font-extrabold text-gray-800">日程を選択</h3>
+                                <motion.button onClick={handleClose} whileTap={{ scale: 0.95 }} className="p-1.5 rounded-full hover:bg-gray-200 transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                     </svg>
-                                </button>
+                                </motion.button>
                             </div>
 
-                            {/* Selected Dates Display - Compact */}
-                            <div className="flex items-center gap-1 text-xs">
-                                <div className={`flex-1 p-1.5 rounded border ${!selectingCheckOut ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}>
-                                    <div className="text-[10px] text-gray-500">チェックイン</div>
-                                    <div className="font-bold text-gray-800 text-sm">{formatDate(tempCheckIn)}</div>
+                            {/* Selected Dates Display */}
+                            <div className="flex items-center gap-2 text-xs">
+                                <div className={`flex-1 p-2 rounded-xl transition-all ${!selectingCheckOut ? 'bg-blue-50 border-2 border-blue-500 shadow-sm' : 'bg-white border border-gray-200'}`}>
+                                    <div className="text-[10px] text-gray-500 font-bold mb-0.5 whitespace-nowrap">チェックイン</div>
+                                    <div className="font-bold text-gray-900 text-sm">{formatDate(tempCheckIn)}</div>
                                 </div>
-                                <span className="text-gray-400">→</span>
-                                <div className={`flex-1 p-1.5 rounded border ${selectingCheckOut ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}>
-                                    <div className="text-[10px] text-gray-500">チェックアウト</div>
-                                    <div className="font-bold text-gray-800 text-sm">{formatDate(tempCheckOut)}</div>
+                                <span className="text-gray-300 font-bold">→</span>
+                                <div className={`flex-1 p-2 rounded-xl transition-all ${selectingCheckOut ? 'bg-blue-50 border-2 border-blue-500 shadow-sm' : 'bg-white border border-gray-200'}`}>
+                                    <div className="text-[10px] text-gray-500 font-bold mb-0.5 whitespace-nowrap">チェックアウト</div>
+                                    <div className="font-bold text-gray-900 text-sm">{formatDate(tempCheckOut)}</div>
                                 </div>
-                                <div className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-sm font-bold">
-                                    {tempNights}泊
+                                <div className="bg-gray-100 text-blue-700 px-3 py-1 rounded-lg text-sm font-bold flex flex-col items-center justify-center min-w-[3rem]">
+                                    <span className="text-lg leading-none">{tempNights}</span>
+                                    <span className="text-[9px]">泊</span>
                                 </div>
                             </div>
                         </div>
 
                         {/* Calendar */}
-                        <div className="p-3">
+                        <div className="p-4 bg-white">
                             {/* Month Navigation */}
-                            <div className="flex justify-between items-center mb-2">
-                                <button
+                            <div className="flex justify-between items-center mb-4">
+                                <motion.button
                                     onClick={prevMonth}
                                     disabled={!canGoPrev()}
-                                    className={`p-1 rounded-full ${canGoPrev() ? 'hover:bg-gray-100' : 'opacity-30 cursor-not-allowed'}`}
+                                    whileTap={{ scale: 0.95 }}
+                                    className={`p-1.5 rounded-full hover:bg-gray-100 transition-colors ${!canGoPrev() ? 'opacity-30 cursor-not-allowed' : ''}`}
                                 >
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                                     </svg>
-                                </button>
-                                <span className="font-bold text-gray-800 text-sm">
+                                </motion.button>
+                                <span className="font-bold text-gray-800 text-sm tracking-wide">
                                     {currentMonth.getFullYear()}年 {currentMonth.getMonth() + 1}月
                                 </span>
-                                <button onClick={nextMonth} className="p-1 rounded-full hover:bg-gray-100">
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <motion.button
+                                    onClick={nextMonth}
+                                    whileTap={{ scale: 0.95 }}
+                                    className="p-1.5 rounded-full hover:bg-gray-100 transition-colors"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                     </svg>
-                                </button>
+                                </motion.button>
                             </div>
 
                             {/* Day Headers */}
-                            <div className="grid grid-cols-7 gap-0.5 mb-1 text-center text-[10px] text-gray-500">
-                                {['日', '月', '火', '水', '木', '金', '土'].map(day => (
-                                    <div key={day} className="h-6 flex items-center justify-center">{day}</div>
+                            <div className="grid grid-cols-7 gap-1 mb-2 text-center text-[10px] font-bold text-gray-400">
+                                {['日', '月', '火', '水', '木', '金', '土'].map((day, i) => (
+                                    <div key={day} className={`h-6 flex items-center justify-center ${i === 0 ? 'text-red-400' : i === 6 ? 'text-blue-400' : ''}`}>{day}</div>
                                 ))}
                             </div>
 
                             {/* Calendar Grid */}
-                            <div className="grid grid-cols-7 gap-0.5">
+                            <div className="grid grid-cols-7 gap-1">
                                 {renderCalendar()}
                             </div>
                         </div>
 
                         {/* Footer */}
-                        <div className="bg-white border-t border-gray-200 p-3">
-                            <button
+                        <div className="border-t border-gray-100 p-4 bg-gray-50/50">
+                            <motion.button
                                 onClick={handleConfirm}
-                                className="w-full bg-blue-600 text-white font-bold py-2.5 rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                                whileTap={{ scale: 0.95 }}
+                                className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition-colors text-sm tracking-widest shadow-lg"
                             >
-                                確定
-                            </button>
+                                確定する
+                            </motion.button>
                         </div>
                     </div>
-                </div>
+                </>
             )}
-        </>
+        </div>
     );
 };

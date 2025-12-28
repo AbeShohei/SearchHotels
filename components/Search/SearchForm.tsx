@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import { GroupedStation } from '../../types';
 import { DateRangePicker } from '../DateRangePicker';
 import { getLineColor } from '../../constants';
@@ -39,7 +40,7 @@ export const SearchForm: React.FC<SearchFormProps> = ({
     loading, isSearchable, handleSearch, loadingProgress, progressPercent
 }) => {
     return (
-        <div className="bg-white rounded-xl shadow-md p-5 mb-6">
+        <div className="neu-flat rounded-2xl p-6 mb-8 relative z-30">
             {/* Inputs */}
             <div className="grid grid-cols-1 gap-4 mb-4">
                 <div className="relative">
@@ -57,12 +58,12 @@ export const SearchForm: React.FC<SearchFormProps> = ({
                         onFocus={() => setShowSuggestions(true)}
                         onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                         placeholder="駅名を入力 (例: 新宿)"
-                        className="w-full bg-gray-50 border border-gray-300 text-gray-900 text-lg font-medium rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block p-3"
+                        className="w-full neu-pressed text-lg font-medium rounded-xl block p-4"
                         disabled={loading}
                     />
 
                     {showSuggestions && suggestions.length > 0 && (
-                        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                        <div className="absolute z-10 w-full mt-2 neu-flat rounded-xl max-h-60 overflow-y-auto">
                             {suggestions.map((station) => (
                                 <button
                                     key={station.name}
@@ -86,8 +87,8 @@ export const SearchForm: React.FC<SearchFormProps> = ({
                     )}
                 </div>
 
-                <div className="grid grid-cols-3 gap-2">
-                    <div className="col-span-3 sm:col-span-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="sm:col-span-2">
                         <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">宿泊日程</label>
                         <DateRangePicker
                             checkInDate={selectedDate}
@@ -99,38 +100,66 @@ export const SearchForm: React.FC<SearchFormProps> = ({
                             disabled={loading}
                         />
                     </div>
-                    <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">人数 (大人)</label>
-                        <select
-                            value={adultCount}
-                            onChange={(e) => setAdultCount(Number(e.target.value))}
-                            className="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm font-medium rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block p-2.5"
-                            disabled={loading}
-                        >
-                            {[1, 2, 3, 4].map(n => <option key={n} value={n}>{n}名</option>)}
-                        </select>
-                    </div>
-                    <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">部屋数</label>
-                        <select
-                            value={roomCount}
-                            onChange={(e) => setRoomCount(Number(e.target.value))}
-                            className="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm font-medium rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block p-2.5"
-                            disabled={loading}
-                        >
-                            {[1, 2, 3, 4].map(num => (
-                                <option key={num} value={num}>{num}室</option>
-                            ))}
-                        </select>
+
+                    {/* Counter Inputs for People & Rooms */}
+                    <div className="grid grid-cols-2 gap-4 sm:col-span-2">
+                        {/* Adult Count */}
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">人数</label>
+                            <div className="flex items-center justify-between neu-pressed rounded-xl p-3">
+                                <motion.button
+                                    onClick={() => setAdultCount(Math.max(1, adultCount - 1))}
+                                    disabled={loading || adultCount <= 1}
+                                    whileTap={{ scale: 0.95 }}
+                                    className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${loading || adultCount <= 1 ? 'opacity-50 cursor-not-allowed' : 'neu-flat-sm text-blue-600 hover:scale-110'}`}
+                                >
+                                    -
+                                </motion.button>
+                                <span className="font-bold text-lg text-gray-700">{adultCount}名</span>
+                                <motion.button
+                                    onClick={() => setAdultCount(Math.min(4, adultCount + 1))}
+                                    disabled={loading || adultCount >= 4}
+                                    whileTap={{ scale: 0.95 }}
+                                    className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${loading || adultCount >= 4 ? 'opacity-50 cursor-not-allowed' : 'neu-flat-sm text-blue-600 hover:scale-110'}`}
+                                >
+                                    +
+                                </motion.button>
+                            </div>
+                        </div>
+
+                        {/* Room Count */}
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">部屋数</label>
+                            <div className="flex items-center justify-between neu-pressed rounded-xl p-3">
+                                <motion.button
+                                    onClick={() => setRoomCount(Math.max(1, roomCount - 1))}
+                                    disabled={loading || roomCount <= 1}
+                                    whileTap={{ scale: 0.95 }}
+                                    className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${loading || roomCount <= 1 ? 'opacity-50 cursor-not-allowed' : 'neu-flat-sm text-blue-600 hover:scale-110'}`}
+                                >
+                                    -
+                                </motion.button>
+                                <span className="font-bold text-lg text-gray-700">{roomCount}室</span>
+                                <motion.button
+                                    onClick={() => setRoomCount(Math.min(4, roomCount + 1))}
+                                    disabled={loading || roomCount >= 4}
+                                    whileTap={{ scale: 0.95 }}
+                                    className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${loading || roomCount >= 4 ? 'opacity-50 cursor-not-allowed' : 'neu-flat-sm text-blue-600 hover:scale-110'}`}
+                                >
+                                    +
+                                </motion.button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
             </div>
 
             <div className="mt-6">
-                <button
+                <motion.button
                     onClick={handleSearch}
                     disabled={loading || !isSearchable}
+                    whileTap={{ scale: 0.95 }}
                     className={`relative w-full px-8 py-3 rounded-lg font-bold text-white shadow-md transition-all overflow-hidden
             ${loading
                             ? 'bg-blue-300 cursor-wait'
@@ -177,7 +206,7 @@ export const SearchForm: React.FC<SearchFormProps> = ({
                             </div>
                         ) : '検索開始'}
                     </span>
-                </button>
+                </motion.button>
             </div>
 
 

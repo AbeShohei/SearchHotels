@@ -94,9 +94,9 @@ export const ResultCard: React.FC<ResultCardProps> = ({
       href={result.hotel.hotelUrl || '#'}
       target="_blank"
       rel="noopener noreferrer"
-      className={`relative p-6 rounded-xl border transition-all duration-300 block cursor-pointer ${isHighlighted
-        ? `bg-white ${getHighlightBorderColor()} shadow-lg scale-[1.02] z-10 hover:scale-[1.03]`
-        : 'bg-white border-gray-200 hover:shadow-lg hover:border-gray-300'
+      className={`relative p-6 rounded-2xl transition-all duration-300 block cursor-pointer ${isHighlighted
+        ? `neu-flat ${getHighlightBorderColor()} border-2 scale-[1.02] z-10 hover:scale-[1.03]`
+        : 'neu-flat hover:-translate-y-1'
         }`}
     >
 
@@ -263,7 +263,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({
       </div>
 
       {/* Breakdown */}
-      <div className="grid grid-cols-2 gap-2 mb-4 text-sm bg-gray-50 p-3 rounded-lg">
+      <div className="grid grid-cols-2 gap-2 mb-4 text-sm neu-pressed p-4 rounded-xl">
         <div className="text-center border-r border-gray-200 flex flex-col justify-center relative">
           <p className="text-gray-500 text-xs mb-1 leading-tight">宿泊費<br />(合計)</p>
           <div className="text-center">
@@ -334,7 +334,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({
           )}
         </div>
 
-        <div className="text-right min-w-[160px] bg-blue-50 px-4 py-2 rounded-lg border border-blue-100">
+        <div className="text-right min-w-[160px] neu-flat-sm px-4 py-3 rounded-xl">
           <p className="text-xs text-blue-800 mb-0.5 font-bold">総額 ({adultCount}名)</p>
           <div className="text-2xl font-bold text-gray-800 leading-none">
             ¥{totalCost.toLocaleString()}

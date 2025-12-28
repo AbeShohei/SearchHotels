@@ -1,11 +1,70 @@
+/* Custom fonts for Neumorphism (Soft & Rounded) */
+@import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@300;400;500;700&family=Nunito:wght@400;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Custom fonts if needed */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
+/* Clean White Background */
 body {
-  font-family: 'Inter', "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
-  background-color: #f3f4f6;
+  font-family: 'Nunito', 'M PLUS Rounded 1c', "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+  background-color: #f8fafc;
+  /* Very light gray/white */
+  color: #4a5568;
+  min-height: 100vh;
+}
+
+/* Glassmorphism Utilities (Reusing neu- classes for compatibility) */
+
+/* 凸 (Card, Button default) -> Glass Panel */
+.neu-flat {
+  background: rgba(255, 255, 255, 0.65);
+  /* More opaque for readability */
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+/* 凸 Small -> Glass Panel */
+.neu-flat-sm {
+  background: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 4px 16px 0 rgba(31, 38, 135, 0.1);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* 凹 (Input) -> Inner Glass / Darker area */
+.neu-pressed {
+  background: rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.05);
+  /* color: #1a202c; */
+}
+
+/* Primary Button Effect -> Liquid Glass Button */
+.neu-btn-primary {
+  background: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  transition: all 0.3s ease;
+}
+
+/* Override defaults */
+input,
+select {
+  background-color: transparent;
+  outline: none;
+}
+
+input:focus,
+select:focus {
+  outline: none;
+  background: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+::placeholder {
+  color: rgba(74, 85, 104, 0.6);
 }

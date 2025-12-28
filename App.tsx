@@ -7,13 +7,14 @@ import { initializeNetwork, findRoutesToDestination, isNetworkInitialized, Route
 import { getWalkingTimeToStation } from './services/walkingService';
 import { GroupedStation, ExtendedResult } from './types';
 import { METRO_LINES } from './constants';
-import { calculateAndSortResults } from './utils/sort';
+import { calculateAndSortResults, processResultsWithoutSort } from './utils/sort';
 
 import { Header } from './components/Layout/Header';
 import { ScrollToTopButton } from './components/Layout/ScrollToTopButton';
 import { Toast } from './components/Layout/Toast';
 import { SearchForm } from './components/Search/SearchForm';
 import { ResultList } from './components/Result/ResultList';
+import { LiquidBackground } from './components/Layout/LiquidBackground';
 
 const App: React.FC = () => {
   const [groupedStations, setGroupedStations] = useState<GroupedStation[]>([]);
@@ -267,8 +268,7 @@ const App: React.FC = () => {
           });
         }
 
-        // Incremental Update
-        // Use utility to sort and calculate scores
+        // Incremental Update - Process and sort results
         const sorted = calculateAndSortResults(tempResults, sortMode, target.name);
         setResults(sorted);
 
@@ -292,7 +292,8 @@ const App: React.FC = () => {
   const isSearchable = isNetworkLoaded && (!!selectedStation || groupedStations.some(s => s.name === stationInput));
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-12">
+    <div className="min-h-screen pb-12">
+      <LiquidBackground />
       <Header />
       <main className="max-w-3xl mx-auto p-4">
         {!isNetworkLoaded ? (
@@ -332,6 +333,7 @@ const App: React.FC = () => {
               sortMode={sortMode}
               setSortMode={setSortMode}
               searchedParams={searchedParams}
+              loading={loading}
             />
 
             {hasSearched && results.length === 0 && !loading && (
