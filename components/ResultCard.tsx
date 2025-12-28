@@ -192,7 +192,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({
               ) : sortMode === 'review' && result.hotel.reviewAverage ? (
                 <div className="bg-yellow-50 px-1.5 py-0.5 rounded text-right border border-yellow-100">
                   <div className="text-[9px] text-yellow-600 font-bold whitespace-nowrap">評価スコア</div>
-                  <div className="text-xs font-bold text-yellow-700 whitespace-nowrap">★{result.hotel.reviewAverage.toFixed(2)}</div>
+                  <div className="text-xs font-bold text-yellow-700 whitespace-nowrap">★{result.hotel.reviewAverage.toFixed(1)}</div>
                 </div>
               ) : (
                 totalSavings && totalSavings > 0 ? (
@@ -213,65 +213,88 @@ export const ResultCard: React.FC<ResultCardProps> = ({
               <div className="flex justify-between text-gray-500 mb-0.5 text-[10px]">
                 <span>宿泊費:</span> <span>¥{pricePerPerson.toLocaleString()}</span>
               </div>
-              <div className="flex justify-between text-gray-500 text-[10px]">
-                <span>交通費(往復):</span> <span>¥{(transportPerPerson * nightCount).toLocaleString()}</span>
+              <div className="flex flex-col mb-0.5">
+                <div className="flex justify-between text-gray-500 text-[10px]">
+                  <span>交通費(往復):</span> <span>¥{(transportPerPerson * nightCount).toLocaleString()}</span>
+                </div>
+                <div className="text-[9px] text-gray-400 text-right leading-none">
+                  (IC: ¥{(icTransportPerPerson * nightCount).toLocaleString()})
+                </div>
               </div>
               <div className="flex justify-between font-bold text-gray-700 border-t border-gray-200 mt-0.5 pt-0.5 text-[11px]">
                 <span>1名合計:</span> <span>¥{costPerPerson.toLocaleString()}</span>
               </div>
-              <div className="text-[9px] text-gray-400 text-right mt-0.5">
-                (IC: ¥{(icTransportPerPerson * nightCount).toLocaleString()})
-              </div>
             </div>
 
             {/* Train Info */}
-            <div className="sm:pl-2 sm:border-l sm:border-gray-200 pt-1 sm:pt-0 border-t sm:border-t-0 border-gray-200 mt-1 sm:mt-0">
-              <div className="font-bold text-gray-600 mb-0.5 border-b border-gray-200 pb-0.5 text-[11px]">移動情報</div>
-              {trainSchedule ? (
-                <>
-                  <div className="grid grid-cols-[24px_1fr] gap-x-1 mb-1 items-center">
-                    <span className="bg-red-100 text-red-600 px-0.5 rounded text-[9px] text-center whitespace-nowrap">終電</span>
-                    <div className="flex justify-center gap-2 items-center text-[10px]">
-                      <span className="font-mono text-gray-700 leading-none">{trainSchedule.lastTrain.departureTime}<span className="text-[9px] text-gray-400 ml-0.5">発</span></span>
-                      <span className="text-gray-300 transform scale-x-50">→</span>
-                      <span className="font-mono text-gray-700 leading-none">{trainSchedule.lastTrain.arrivalTime}<span className="text-[9px] text-gray-400 ml-0.5">着</span></span>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-[24px_1fr] gap-x-1 items-center">
-                    <span className="bg-blue-100 text-blue-600 px-0.5 rounded text-[9px] text-center whitespace-nowrap">始発</span>
-                    <div className="flex justify-center gap-2 items-center text-[10px]">
-                      <span className="font-mono text-gray-700 leading-none">{trainSchedule.firstTrain.departureTime}<span className="text-[9px] text-gray-400 ml-0.5">発</span></span>
-                      <span className="text-gray-300 transform scale-x-50">→</span>
-                      <span className="font-mono text-gray-700 leading-none">{trainSchedule.firstTrain.arrivalTime}<span className="text-[9px] text-gray-400 ml-0.5">着</span></span>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <div className="text-gray-400 text-center py-1 text-[10px]">- 時刻表取得中 -</div>
-              )}
+            <div className="sm:pl-2 sm:border-l sm:border-gray-200 pt-1 sm:pt-0 border-t sm:border-t-0 border-gray-200 mt-1 sm:mt-0 flex flex-col justify-between">
+              <div>
+                <div className="font-bold text-gray-600 mb-0.5 border-b border-gray-200 pb-0.5 text-[11px]">移動情報</div>
+                {trainSchedule ? (
+                  (() => {
+                    const formatDate = (dateStr: string, addDays: number = 0) => {
+                      if (!dateStr) return '';
+                      const parts = dateStr.split('-');
+                      if (parts.length !== 3) return dateStr;
+                      const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+                      d.setDate(d.getDate() + addDays);
+                      return `${d.getMonth() + 1}/${d.getDate()}`;
+                    };
+                    return (
+                      <>
+                        <div className="grid grid-cols-[24px_1fr] gap-x-1 mb-1 items-center">
+                          <div className="flex flex-col items-center">
+                            <span className="bg-red-100 text-red-600 px-0.5 rounded text-[9px] text-center whitespace-nowrap w-full">終電</span>
+                            <span className="text-[8px] text-gray-400 leading-none mt-0.5">{formatDate(selectedDate)}</span>
+                          </div>
+                          <div className="flex justify-center gap-2 items-center text-[10px]">
+                            <span className="font-mono text-gray-700 leading-none">{trainSchedule.lastTrain.departureTime}<span className="text-[9px] text-gray-400 ml-0.5">発</span></span>
+                            <span className="text-gray-300 transform scale-x-50">→</span>
+                            <span className="font-mono text-gray-700 leading-none">{trainSchedule.lastTrain.arrivalTime}<span className="text-[9px] text-gray-400 ml-0.5">着</span></span>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-[24px_1fr] gap-x-1 items-center">
+                          <div className="flex flex-col items-center">
+                            <span className="bg-blue-100 text-blue-600 px-0.5 rounded text-[9px] text-center whitespace-nowrap w-full">始発</span>
+                            <span className="text-[8px] text-gray-400 leading-none mt-0.5">{formatDate(selectedDate, 1)}</span>
+                          </div>
+                          <div className="flex justify-center gap-2 items-center text-[10px]">
+                            <span className="font-mono text-gray-700 leading-none">{trainSchedule.firstTrain.departureTime}<span className="text-[9px] text-gray-400 ml-0.5">発</span></span>
+                            <span className="text-gray-300 transform scale-x-50">→</span>
+                            <span className="font-mono text-gray-700 leading-none">{trainSchedule.firstTrain.arrivalTime}<span className="text-[9px] text-gray-400 ml-0.5">着</span></span>
+                          </div>
+                        </div>
+                      </>
+                    );
+                  })()
+                ) : (
+                  <div className="text-gray-400 text-center py-1 text-[10px]">- 時刻表取得中 -</div>
+                )}
+              </div>
+
+              {/* Moved Travel Time Info */}
+              <div className="mt-1 pt-1 border-t border-gray-200">
+                <div className="font-bold text-gray-700 text-[10px] flex flex-wrap items-baseline gap-1 leading-tight justify-end sm:justify-start">
+                  <span className="whitespace-nowrap">⏱️約{result.trainTime + result.walkTime}分</span>
+                  <span className="text-[9px] text-gray-400 font-normal whitespace-nowrap">
+                    ({result.trainTime > 0 ? `電車${result.trainTime}分/${numberOfStops}駅+` : ''}徒歩{result.walkTime}分)
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
 
           {/* Total Footer - Horizontal Layout for Compactness */}
-          <div className="mt-auto flex items-end justify-between pt-1 gap-2">
-            <div className="flex-1 min-w-0">
-              <div className="text-[10px] text-gray-500 whitespace-nowrap">
-                {nightCount}泊 {adultCount}名
-              </div>
-              <div className="font-bold text-gray-700 text-[11px] flex flex-wrap items-baseline gap-1 leading-tight">
-                <span className="whitespace-nowrap">⏱️約{result.trainTime + result.walkTime}分</span>
-                <span className="text-[10px] text-gray-400 font-normal whitespace-nowrap">
-                  (電車{result.trainTime}分/{numberOfStops}駅+徒歩{result.walkTime}分)
-                </span>
-              </div>
-            </div>
-
-            <div className="text-right shrink-0">
-              <div className="text-[9px] text-gray-500 font-bold mb-0 leading-none">合計支払い額</div>
-              <div className="flex items-baseline justify-end gap-1">
+          <div className="mt-auto flex items-end justify-end pt-1 gap-2">
+            <div className="flex flex-col items-end shrink-0">
+              <div className="flex items-center gap-1 mb-0 leading-none">
                 {sortMode === 'price' && isCheapest && (
-                  <span className="text-[10px] text-red-500 font-bold animate-pulse whitespace-nowrap">最安!</span>
+                  <span className="text-[10px] text-red-500 font-bold animate-pulse whitespace-nowrap">最安値!</span>
                 )}
+                <div className="text-[9px] text-gray-500 font-bold">合計支払い額</div>
+              </div>
+              <div className="flex items-baseline justify-end gap-1">
+                <span className="text-xs text-gray-600 font-bold whitespace-nowrap mr-0.5">{nightCount}泊{adultCount}名</span>
                 <span className="text-xl font-bold text-gray-800 tracking-tight leading-none">
                   ¥{totalCost.toLocaleString()}
                 </span>
