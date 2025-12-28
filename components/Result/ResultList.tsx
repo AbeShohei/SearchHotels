@@ -24,6 +24,15 @@ export const ResultList: React.FC<ResultListProps> = ({ results, sortMode, setSo
         results.length > 0 ? Math.max(...results.map(r => r.hotel.reviewAverage || 0)) : 0,
         [results]);
 
+    const baselineResult = results.find(r => r.isBaseline);
+
+    const scrollToBaseline = () => {
+        if (baselineResult) {
+            const el = document.getElementById(`hotel-${baselineResult.id}`);
+            el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    };
+
     if (results.length === 0) return null;
 
     return (
@@ -63,6 +72,18 @@ export const ResultList: React.FC<ResultListProps> = ({ results, sortMode, setSo
                 </div>
             </div>
 
+            {/* Jump to Baseline Button */}
+            {baselineResult && (
+                <div className="px-2 mb-2">
+                    <button
+                        onClick={scrollToBaseline}
+                        className="w-full py-2 bg-gray-700 text-white rounded-lg font-bold shadow hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 text-sm"
+                    >
+                        <span>▼</span> 基準ホテルへジャンプ
+                    </button>
+                </div>
+            )}
+
             {results.map((result, index) => {
                 const price = result.totalCost;
                 const isCheapest = price === minPrice;
@@ -74,23 +95,24 @@ export const ResultList: React.FC<ResultListProps> = ({ results, sortMode, setSo
                 const lineColor = getLineColor(mainLineId);
 
                 return (
-                    <ResultCard
-                        key={result.id}
-                        result={result}
-                        rank={index + 1}
-                        lineColor={lineColor}
-                        trainSchedule={result.trainSchedule}
-                        selectedDate={searchedParams.selectedDate}
-                        isCheapest={isCheapest}
-                        isOptimal={isOptimal}
-                        isHighestRated={isHighestRated}
-                        ticketFare={result.ticketFare}
-                        numberOfStops={result.numberOfStops}
-                        adultCount={searchedParams.adultCount}
-                        nightCount={searchedParams.nightCount}
-                        roomCount={searchedParams.roomCount}
-                        sortMode={sortMode}
-                    />
+                    <div id={`hotel-${result.id}`} key={result.id}>
+                        <ResultCard
+                            result={result}
+                            rank={index + 1}
+                            lineColor={lineColor}
+                            trainSchedule={result.trainSchedule}
+                            selectedDate={searchedParams.selectedDate}
+                            isCheapest={isCheapest}
+                            isOptimal={isOptimal}
+                            isHighestRated={isHighestRated}
+                            ticketFare={result.ticketFare}
+                            numberOfStops={result.numberOfStops}
+                            adultCount={searchedParams.adultCount}
+                            nightCount={searchedParams.nightCount}
+                            roomCount={searchedParams.roomCount}
+                            sortMode={sortMode}
+                        />
+                    </div>
                 );
             })}
         </div>

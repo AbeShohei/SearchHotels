@@ -127,10 +127,16 @@ export const ResultCard: React.FC<ResultCardProps> = ({
           </div>
           <div className="min-w-0 flex-1">
             {result.hotel.hotelUrl ? (
-              <span className="text-xl font-bold text-gray-800 truncate block">
-                {result.hotel.hotelName}
-                {result.hotel.reviewAverage && <span className="ml-2 text-orange-500 text-lg">★{result.hotel.reviewAverage}</span>}
-              </span>
+              <div className="flex flex-col sm:flex-row sm:items-baseline min-w-0">
+                <span className="text-xl font-bold text-gray-800 truncate">
+                  {result.hotel.hotelName}
+                </span>
+                {result.hotel.reviewAverage && (
+                  <span className="text-orange-500 text-lg sm:ml-2 shrink-0">
+                    ★{result.hotel.reviewAverage}
+                  </span>
+                )}
+              </div>
             ) : (
               <h3 className="text-xl font-bold text-gray-800 truncate">{result.hotel.hotelName}</h3>
             )}
@@ -288,13 +294,11 @@ export const ResultCard: React.FC<ResultCardProps> = ({
       <div className="mt-4 pt-4 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-end gap-4">
         <div className="flex-1 w-full text-xs text-gray-500">
           <div className="mb-2">
-            <span className="font-medium text-gray-700">移動:</span>
-            <span className="ml-1">🚃{result.trainTime}分</span>
-            {numberOfStops !== undefined && (
-              <span className="ml-2 text-gray-500 text-[10px]">
-                ({numberOfStops}駅)
-              </span>
-            )}
+            <span className="font-bold text-gray-800 text-sm">移動: 約{result.trainTime + result.walkTime}分</span>
+            <span className="ml-2 text-gray-500 text-xs">
+              (🚃{result.trainTime}分 + 徒歩{result.walkTime}分
+              {numberOfStops !== undefined && `, ${numberOfStops}駅`})
+            </span>
           </div>
 
           {/* First/Last train info (Only for direct routes, exclude destination/0min) */}
