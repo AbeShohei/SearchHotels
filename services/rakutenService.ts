@@ -81,17 +81,32 @@ export const searchHotels = async (
             const d2 = new Date(checkoutDate);
             const nights = Math.max(1, Math.ceil((d2.getTime() - d1.getTime()) / 86400000));
 
-            // roomInfoが配列で返ってくるので、その中のプランから最安値を探す
+            // roomInfoが配列で返ってくるので、その中のプランから最安値を探し、その客室画像も取得
+            let roomImageUrl: string | undefined;
+            let roomThumbnailUrl: string | undefined;
+
             if (Array.isArray(roomInfos)) {
                 // 有効な価格を持つプランを抽出
-                const charges = roomInfos.map((r: any) => {
+                const roomsWithPrices = roomInfos.map((r: any) => {
                     const dc = r.dailyCharge;
-                    // stayTotalがあればそれを使う（滞在合計）。なければtotal（1日分と仮定）× 泊数
-                    return dc?.stayTotal || (dc?.total ? dc.total * nights : 0);
-                }).filter((p: number) => p > 0);
+                    const roomPrice = dc?.stayTotal || (dc?.total ? dc.total * nights : 0);
+                    // Extract room images if available
+                    const rImg = r.roomBasicInfo?.roomImageUrl || r.roomImageUrl;
+                    const rThumb = r.roomBasicInfo?.roomThumbnailUrl || r.roomThumbnailUrl;
 
-                if (charges.length > 0) {
-                    price = Math.min(...charges);
+                    return {
+                        price: roomPrice,
+                        roomImageUrl: rImg,
+                        roomThumbnailUrl: rThumb
+                    };
+                }).filter((r: any) => r.price > 0);
+
+                if (roomsWithPrices.length > 0) {
+                    // 最安値のプランを見つける
+                    const cheapestRoom = roomsWithPrices.reduce((min, r) => r.price < min.price ? r : min);
+                    price = cheapestRoom.price;
+                    roomImageUrl = cheapestRoom.roomImageUrl;
+                    roomThumbnailUrl = cheapestRoom.roomThumbnailUrl;
                 }
             }
 
@@ -106,7 +121,10 @@ export const searchHotels = async (
                 price: price,
                 stationId: "",
                 hotelUrl: basicInfo.hotelInformationUrl,
-                imageUrl: basicInfo.hotelImageUrl, // ここも APIによっては thumbnail の場合があるが基本はこれ
+                // Provide both hotel and room images
+                hotelImageUrl: basicInfo.hotelImageUrl,
+                roomImageUrl: roomImageUrl,
+                roomThumbnailUrl: roomThumbnailUrl,
                 reviewAverage: basicInfo.reviewAverage,
                 hotelLat: basicInfo.latitude,
                 hotelLng: basicInfo.longitude

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { METRO_LINES } from '../constants';
 import { ScoredResult } from '../types';
 import { FirstLastTrainInfo } from '../services/travelTimeService';
@@ -34,59 +35,46 @@ export const ResultCard: React.FC<ResultCardProps> = ({
   isCheapest,
   isOptimal,
   isHighestRated,
-  ticketFare,
+  ticketFare: propTicketFare,
   numberOfStops,
   adultCount,
   nightCount,
   roomCount,
   sortMode
 }) => {
-  // Total costs
-  const totalHotelPrice = result.hotel.price;
-  // Transport Cost = Round Trip * Adult Count * Night Count
-  const totalIcFare = result.icFare * 2 * adultCount * nightCount;
-  const totalCost = totalHotelPrice + totalIcFare;
+  const [displayImage, setDisplayImage] = useState<string>(result.hotel.roomImageUrl || result.hotel.hotelImageUrl || '');
 
-  // Per person costs
+  // Cost Calculations
+  const baseOneWayFare = result.ticketFare || result.icFare;
+  const icOneWayFare = result.icFare;
+
+  const totalHotelPrice = result.hotel.price; // 宿泊期間全体の料金
+  const totalTransportFare = baseOneWayFare * 2 * adultCount * nightCount; // 宿泊数分の往復運賃
+  const totalCost = totalHotelPrice + totalTransportFare;
+
   const pricePerPerson = Math.round(totalHotelPrice / adultCount);
-  const farePerPerson = result.icFare * 2 * nightCount;
-  const costPerPerson = pricePerPerson + farePerPerson;
+  const transportPerPerson = baseOneWayFare * 2;
+  const icTransportPerPerson = icOneWayFare * 2;
+  const costPerPerson = pricePerPerson + (transportPerPerson * nightCount);
 
-  // Savings Logic
-  // result.savings is Total Savings. We also want per-person savings.
   const totalSavings = result.savings !== undefined ? result.savings : undefined;
-  const savingsPerPerson = totalSavings !== undefined ? Math.round(totalSavings / adultCount) : undefined;
 
-  const getNextDayStr = () => {
-    if (!selectedDate) return '';
-    const d = new Date(selectedDate);
-    d.setDate(d.getDate() + 1);
-    return `${d.getMonth() + 1}/${d.getDate()}`;
-  };
-
-  const currentDayStr = selectedDate ? (() => {
-    const d = new Date(selectedDate);
-    return `${d.getMonth() + 1}/${d.getDate()}`;
-  })() : '';
-
-  // Determine if this card should be highlighted (has a special tag)
   const isHighlighted = isOptimal ||
     (isCheapest && sortMode === 'price') ||
     (isHighestRated && sortMode === 'review');
 
-  // Get highlight color based on mode
   const getHighlightBorderColor = () => {
-    if (isOptimal) return 'border-orange-400';
-    if (isCheapest && sortMode === 'price') return 'border-red-400';
-    if (isHighestRated && sortMode === 'review') return 'border-yellow-400';
-    return 'border-gray-200';
+    if (isOptimal) return 'border-orange-500';
+    if (isCheapest && sortMode === 'price') return 'border-red-500';
+    if (isHighestRated && sortMode === 'review') return 'border-yellow-500';
+    return 'border-transparent';
   };
 
-  const getRankBgColor = () => {
-    if (isOptimal) return 'bg-orange-100 text-orange-600';
-    if (isCheapest && sortMode === 'price') return 'bg-red-100 text-red-600';
-    if (isHighestRated && sortMode === 'review') return 'bg-yellow-100 text-yellow-600';
-    return 'bg-gray-100 text-gray-500';
+  const getRankBadgeStyle = () => {
+    if (rank === 1) return 'bg-gradient-to-br from-yellow-400 to-orange-500 text-white shadow-md scale-110';
+    if (rank === 2) return 'bg-gradient-to-br from-gray-300 to-gray-400 text-white shadow';
+    if (rank === 3) return 'bg-gradient-to-br from-amber-600 to-amber-700 text-white shadow';
+    return 'bg-gray-100 text-gray-500 border border-gray-200';
   };
 
   return (
@@ -94,254 +82,203 @@ export const ResultCard: React.FC<ResultCardProps> = ({
       href={result.hotel.hotelUrl || '#'}
       target="_blank"
       rel="noopener noreferrer"
-      className={`relative p-6 rounded-2xl transition-all duration-300 block cursor-pointer ${isHighlighted
-        ? `neu-flat ${getHighlightBorderColor()} border-2 scale-[1.02] z-10 hover:scale-[1.03]`
-        : 'neu-flat hover:-translate-y-1'
+      className={`relative block rounded-xl overflow-visible transition-all duration-300 mb-4 mx-1 ${isHighlighted
+        ? `bg-white ${getHighlightBorderColor()} border-2 shadow-xl z-10 custom-highlight`
+        : 'bg-white/90 border border-gray-200 hover:border-gray-300 hover:shadow-lg hover:-translate-y-1'
         }`}
     >
-
-      {/* Badges */}
-      <div className="absolute -top-3 -right-3 flex gap-2">
+      {/* Absolute Badges */}
+      <div className="absolute -top-2.5 right-3 flex gap-1 z-20">
         {isOptimal && (
-          <div className="bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm">
+          <span className="bg-orange-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md whitespace-nowrap">
             最適
-          </div>
+          </span>
         )}
         {isCheapest && sortMode === 'price' && (
-          <div className="bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm">
+          <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md whitespace-nowrap">
             最安
-          </div>
+          </span>
         )}
         {isHighestRated && sortMode === 'review' && (
-          <div className="bg-yellow-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm">
+          <span className="bg-yellow-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md whitespace-nowrap">
             最高評価
-          </div>
+          </span>
         )}
       </div>
 
-      <div className="flex flex-col sm:flex-row justify-between items-start mb-2 gap-3">
-        <div className="flex items-center space-x-3 w-full">
-          <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold shrink-0 ${getRankBgColor()
-            }`}>
-            #{rank}
+      <div className="flex flex-col sm:flex-row h-full overflow-hidden rounded-xl">
+        {/* Left: Image Section */}
+        <div className="w-full h-[140px] sm:h-auto sm:w-40 bg-gray-200 relative group shrink-0">
+          {displayImage ? (
+            <img
+              src={displayImage}
+              alt={result.hotel.hotelName}
+              className="w-full h-full object-cover"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-gray-400 text-2xl">
+              🏨
+            </div>
+          )}
+
+          {/* Image Switcher */}
+          {result.hotel.hotelImageUrl && result.hotel.roomImageUrl && (
+            <div className="absolute top-2 right-2 flex gap-1 z-20 bg-black/20 p-1 rounded-full backdrop-blur-sm">
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setDisplayImage(result.hotel.hotelImageUrl || '');
+                }}
+                className={`w-2.5 h-2.5 rounded-full border border-white/40 transition-all ${displayImage === result.hotel.hotelImageUrl ? 'bg-white scale-110' : 'bg-white/40 hover:bg-white/80'}`}
+                title="ホテル外観"
+              />
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setDisplayImage(result.hotel.roomImageUrl || '');
+                }}
+                className={`w-2.5 h-2.5 rounded-full border border-white/40 transition-all ${displayImage === result.hotel.roomImageUrl ? 'bg-white scale-110' : 'bg-white/40 hover:bg-white/80'}`}
+                title="客室"
+              />
+            </div>
+          )}
+
+          {/* Rank Badge */}
+          <div className={`absolute top-2 left-2 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shadow-lg ring-1 ring-white/50 ${getRankBadgeStyle()}`}>
+            {rank}
           </div>
-          <div className="min-w-0 flex-1">
-            {result.hotel.hotelUrl ? (
-              <div className="flex flex-col sm:flex-row sm:items-baseline min-w-0">
-                <span className="text-xl font-bold text-gray-800 truncate">
-                  {result.hotel.hotelName}
-                </span>
+        </div>
+
+        {/* Right: Info Section */}
+        <div className="flex-1 p-2.5 flex flex-col justify-between min-w-0">
+
+          {/* Header */}
+          <div className="flex justify-between items-start mb-1.5 gap-2">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap mb-1 leading-none">
+                {/* Lines */}
+                {result.lines && result.lines.slice(0, 3).map((lineId, i) => {
+                  const info = getLineInfo(lineId);
+                  return (
+                    <span key={i} className="text-[10px] text-white px-1.5 py-0.5 rounded shadow-sm font-medium whitespace-nowrap" style={{ backgroundColor: info.color }}>
+                      {info.name}
+                    </span>
+                  );
+                })}
+                <span className="text-sm font-bold text-gray-700 whitespace-nowrap">{result.name}駅</span>
+
                 {result.hotel.reviewAverage && (
-                  <span className="text-orange-500 text-lg sm:ml-2 shrink-0">
-                    ★{result.hotel.reviewAverage}
+                  <span className="text-[10px] text-orange-500 font-bold bg-orange-50 px-1.5 py-0.5 rounded whitespace-nowrap">
+                    ★{result.hotel.reviewAverage.toFixed(1)}
                   </span>
                 )}
               </div>
-            ) : (
-              <h3 className="text-xl font-bold text-gray-800 truncate">{result.hotel.hotelName}</h3>
-            )}
-            <p className="text-sm text-gray-700">
-              {result.name}駅
-              {result.walkTime > 0 && <span className="text-gray-500 ml-1">徒歩{result.walkTime}分</span>}
-            </p>
-            {result.hotel.hotelImageUrl && (
-              <img src={result.hotel.hotelImageUrl} alt={result.hotel.hotelName} className="mt-2 h-32 w-full object-cover rounded-md" />
-            )}
-          </div>
-        </div>
-      </div>
 
-      {/* Mobile: Lines and Savings side-by-side */}
-      <div className="flex flex-row justify-between items-end mb-4 gap-2">
-        {/* Lines */}
-        <div className="flex gap-1 flex-wrap content-end pb-1">
-          {result.lines && result.lines.map((lineId, i) => {
-            const info = getLineInfo(lineId);
-            return (
-              <span key={i} className="text-xs text-white px-2 py-0.5 rounded" style={{ backgroundColor: info.color }}>
-                {info.name}
-              </span>
-            );
-          })}
-        </div>
+              <h3 className="font-bold text-gray-800 text-sm sm:text-base leading-tight tracking-tight line-clamp-1">
+                {result.hotel.hotelName}
+              </h3>
+            </div>
 
-        {/* Savings Info */}
-        <div className="text-right shrink-0">
-          {sortMode === 'review' ? (
-            // レビューモード: 評価差を表示
-            <>
-              {result.hotel.reviewAverage ? (
-                <div className="flex flex-col items-end leading-none">
-                  <div className="text-2xl font-bold text-orange-500">
-                    ★{result.hotel.reviewAverage.toFixed(2)}
-                  </div>
-                  {totalSavings !== undefined && totalSavings > 0 ? (
-                    <span className="text-xs text-green-600 font-bold mt-0.5">+{totalSavings.toFixed(2)} ★</span>
-                  ) : totalSavings !== undefined && totalSavings < 0 ? (
-                    <span className="text-xs text-gray-400 mt-0.5">{totalSavings.toFixed(2)} ★</span>
-                  ) : result.isBaseline ? (
-                    <span className="text-xs text-gray-500 mt-0.5">基準</span>
-                  ) : null}
+            {/* Top Right: Info (Review / Cospa / Savings) */}
+            <div className="shrink-0 ml-1">
+              {sortMode === 'cospa' && result.cospaIndex ? (
+                <div className="text-right">
+                  <div className="text-[10px] text-gray-400 font-bold">タイパ</div>
+                  <div className="text-sm font-bold text-green-600 leading-none">{result.cospaIndex.toLocaleString()}<span className="text-[10px] ml-0.5">pt</span></div>
+                </div>
+              ) : sortMode === 'review' && result.hotel.reviewAverage ? (
+                <div className="bg-yellow-50 px-1.5 py-0.5 rounded text-right border border-yellow-100">
+                  <div className="text-[9px] text-yellow-600 font-bold whitespace-nowrap">評価スコア</div>
+                  <div className="text-xs font-bold text-yellow-700 whitespace-nowrap">★{result.hotel.reviewAverage.toFixed(2)}</div>
                 </div>
               ) : (
-                <div className="text-lg font-bold text-gray-400">レビューなし</div>
+                totalSavings && totalSavings > 0 ? (
+                  <div className="bg-green-50 px-1.5 py-0.5 rounded text-right border border-green-100">
+                    <div className="text-[9px] text-green-600 font-bold whitespace-nowrap">お得額</div>
+                    <div className="text-xs font-bold text-green-700 whitespace-nowrap">+{totalSavings.toLocaleString()}円</div>
+                  </div>
+                ) : null
               )}
-            </>
-          ) : sortMode === 'cospa' ? (
-            // コスパモード: コスパ指標を表示
-            <div className="flex flex-col items-end leading-none">
-              {result.savedMoney !== undefined && result.extraTime !== undefined ? (
-                <>
-                  {/* 基準ホテルは特別アイコン */}
-                  {result.isBaseline ? (
-                    <div className="flex flex-col items-end">
-                      <div className="text-2xl font-bold text-gray-400">-</div>
-                      <span className="text-xs text-gray-500 mt-0.5">基準</span>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-end">
-                      <div className={`text-2xl font-bold ${(result.cospaIndex ?? 0) > 0 ? 'text-green-600' :
-                        (result.cospaIndex ?? 0) < 0 ? 'text-red-500' : 'text-gray-500'
-                        }`}>
-                        {result.cospaIndex === Infinity ? '-' : result.cospaIndex?.toLocaleString() || '0'}
-                      </div>
-                      <span className="text-xs text-gray-500 mt-0.5">pt</span>
-                    </div>
-                  )}
+            </div>
+          </div>
 
-                  <div className="text-[10px] text-gray-400 mt-1 text-right">
-                    {/* 金額差分 */}
-                    <span className={result.savedMoney > 0 ? 'text-green-600' : result.savedMoney < 0 ? 'text-red-500' : ''}>
-                      {result.savedMoney > 0 ? '+' : ''}{result.savedMoney.toLocaleString()}円
-                    </span>
-                    <span className="mx-1">/</span>
-                    {/* 時間差分 */}
-                    <span className={result.extraTime <= 0 ? 'text-green-600' : ''}>
-                      {result.extraTime > 0 ? '+' : ''}{result.extraTime}分
-                    </span>
+          {/* Details Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs bg-gray-50 p-2 rounded-lg border border-gray-100 mb-1.5">
+            {/* Cost Detail */}
+            <div>
+              <div className="font-bold text-gray-600 mb-0.5 border-b border-gray-200 pb-0.5 text-[11px]">料金内訳 (1名あたり)</div>
+              <div className="flex justify-between text-gray-500 mb-0.5 text-[10px]">
+                <span>宿泊費:</span> <span>¥{pricePerPerson.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between text-gray-500 text-[10px]">
+                <span>交通費(往復):</span> <span>¥{(transportPerPerson * nightCount).toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between font-bold text-gray-700 border-t border-gray-200 mt-0.5 pt-0.5 text-[11px]">
+                <span>1名合計:</span> <span>¥{costPerPerson.toLocaleString()}</span>
+              </div>
+              <div className="text-[9px] text-gray-400 text-right mt-0.5">
+                (IC: ¥{(icTransportPerPerson * nightCount).toLocaleString()})
+              </div>
+            </div>
+
+            {/* Train Info */}
+            <div className="sm:pl-2 sm:border-l sm:border-gray-200 pt-1 sm:pt-0 border-t sm:border-t-0 border-gray-200 mt-1 sm:mt-0">
+              <div className="font-bold text-gray-600 mb-0.5 border-b border-gray-200 pb-0.5 text-[11px]">移動情報</div>
+              {trainSchedule ? (
+                <>
+                  <div className="grid grid-cols-[24px_1fr] gap-x-1 mb-1 items-center">
+                    <span className="bg-red-100 text-red-600 px-0.5 rounded text-[9px] text-center whitespace-nowrap">終電</span>
+                    <div className="flex justify-center gap-2 items-center text-[10px]">
+                      <span className="font-mono text-gray-700 leading-none">{trainSchedule.lastTrain.departureTime}<span className="text-[9px] text-gray-400 ml-0.5">発</span></span>
+                      <span className="text-gray-300 transform scale-x-50">→</span>
+                      <span className="font-mono text-gray-700 leading-none">{trainSchedule.lastTrain.arrivalTime}<span className="text-[9px] text-gray-400 ml-0.5">着</span></span>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-[24px_1fr] gap-x-1 items-center">
+                    <span className="bg-blue-100 text-blue-600 px-0.5 rounded text-[9px] text-center whitespace-nowrap">始発</span>
+                    <div className="flex justify-center gap-2 items-center text-[10px]">
+                      <span className="font-mono text-gray-700 leading-none">{trainSchedule.firstTrain.departureTime}<span className="text-[9px] text-gray-400 ml-0.5">発</span></span>
+                      <span className="text-gray-300 transform scale-x-50">→</span>
+                      <span className="font-mono text-gray-700 leading-none">{trainSchedule.firstTrain.arrivalTime}<span className="text-[9px] text-gray-400 ml-0.5">着</span></span>
+                    </div>
                   </div>
                 </>
               ) : (
-                <div className="text-lg font-bold text-gray-400">-</div>
+                <div className="text-gray-400 text-center py-1 text-[10px]">- 時刻表取得中 -</div>
               )}
             </div>
-          ) : (
-            // 料金モード: お得額を表示
-            savingsPerPerson !== undefined ? (
-              <>
-                {totalSavings !== undefined && totalSavings > 0 ? (
-                  <>
-                    <div className="text-2xl font-bold text-red-500 flex flex-col items-end leading-none">
-                      <span>{totalSavings.toLocaleString()} <span className="text-sm font-normal text-gray-500">円</span></span>
-                      <span className="text-xs text-red-500 font-bold block mt-0.5">お得！</span>
-                      <span className="text-[10px] text-red-400 mt-0.5">1名あたり {savingsPerPerson?.toLocaleString()}円 お得</span>
-                    </div>
-                  </>
-                ) : totalSavings !== undefined && totalSavings < 0 ? (
-                  <>
-                    <div className="text-lg font-bold text-gray-500 flex flex-col items-end leading-none">
-                      <span>{Math.abs(totalSavings).toLocaleString()} <span className="text-sm font-normal text-gray-500">円</span></span>
-                      <span className="text-xs text-gray-500 block mt-0.5">割高</span>
-                      <span className="text-[10px] text-gray-400 mt-0.5">1名あたり {Math.abs(savingsPerPerson!).toLocaleString()}円 割高</span>
-                    </div>
-                  </>
-                ) : result.isBaseline ? (
-                  <>
-                    <div className="text-lg font-bold text-gray-500">
-                      基準
-                    </div>
-                  </>
-                ) : null}
-              </>
-            ) : (
-              <div className="text-lg font-bold text-gray-400">
-                -
+          </div>
+
+          {/* Total Footer - Horizontal Layout for Compactness */}
+          <div className="mt-auto flex items-end justify-between pt-1 gap-2">
+            <div className="flex-1 min-w-0">
+              <div className="text-[10px] text-gray-500 whitespace-nowrap">
+                {nightCount}泊 {adultCount}名
               </div>
-            )
-          )}
-        </div>
-      </div>
-
-      {/* Breakdown */}
-      <div className="grid grid-cols-2 gap-2 mb-4 text-sm neu-pressed p-4 rounded-xl">
-        <div className="text-center border-r border-gray-200 flex flex-col justify-center relative">
-          <p className="text-gray-500 text-xs mb-1 leading-tight">宿泊費<br />(合計)</p>
-          <div className="text-center">
-            <div className="flex justify-center gap-1 mb-1">
-              <span className="text-[10px] bg-yellow-100 text-yellow-700 px-1 rounded">{nightCount}泊</span>
-              <span className="text-[10px] bg-blue-100 text-blue-700 px-1 rounded">{roomCount}室</span>
+              <div className="font-bold text-gray-700 text-[11px] flex flex-wrap items-baseline gap-1 leading-tight">
+                <span className="whitespace-nowrap">⏱️約{result.trainTime + result.walkTime}分</span>
+                <span className="text-[10px] text-gray-400 font-normal whitespace-nowrap">
+                  (電車{result.trainTime}分/{numberOfStops}駅+徒歩{result.walkTime}分)
+                </span>
+              </div>
             </div>
-            <span className="font-bold text-lg text-gray-800">¥{totalHotelPrice.toLocaleString()}</span>
-            <div className="text-xs text-gray-400">1名あたり ¥{pricePerPerson.toLocaleString()}</div>
-          </div>
-        </div>
-        <div className="text-center flex flex-col justify-center">
-          <p className="text-gray-500 text-xs mb-1 leading-tight">
-            往復運賃<br />(合計)
-            <span className="text-[10px] bg-gray-100 text-gray-600 px-1 rounded ml-1">×{nightCount}日</span>
-          </p>
-          <div className="flex items-center justify-center gap-2 mb-1">
-            <div className="text-center">
-              <span className="text-[10px] bg-green-100 text-green-700 px-1 rounded block mb-0.5 w-fit mx-auto">IC</span>
-              <span className="font-bold text-lg text-gray-800">¥{totalIcFare.toLocaleString()}</span>
+
+            <div className="text-right shrink-0">
+              <div className="text-[9px] text-gray-500 font-bold mb-0 leading-none">合計支払い額</div>
+              <div className="flex items-baseline justify-end gap-1">
+                {sortMode === 'price' && isCheapest && (
+                  <span className="text-[10px] text-red-500 font-bold animate-pulse whitespace-nowrap">最安!</span>
+                )}
+                <span className="text-xl font-bold text-gray-800 tracking-tight leading-none">
+                  ¥{totalCost.toLocaleString()}
+                </span>
+              </div>
             </div>
           </div>
-          <div className="text-xs text-gray-400">1名あたり ¥{farePerPerson.toLocaleString()}</div>
-        </div>
-      </div>
 
-      {/* Train schedule and travel time & Total Cost */}
-      <div className="mt-4 pt-4 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-end gap-4">
-        <div className="flex-1 w-full text-xs text-gray-500">
-          <div className="mb-2">
-            <span className="font-bold text-gray-800 text-sm">移動: 約{result.trainTime + result.walkTime}分</span>
-            <span className="ml-2 text-gray-500 text-xs">
-              (🚃{result.trainTime}分 + 徒歩{result.walkTime}分
-              {numberOfStops !== undefined && `, ${numberOfStops}駅`})
-            </span>
-          </div>
-
-          {/* First/Last train info (Only for direct routes, exclude destination/0min) */}
-          {result.transfers === 0 && result.trainTime > 0 && trainSchedule && (trainSchedule.lastTrain || trainSchedule.firstTrain) && (
-            <div className="space-y-2">
-              {trainSchedule.lastTrain && (
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded font-bold border border-purple-200">終電</span>
-                  <span className="text-gray-600 font-medium">宿泊日 ({currentDayStr})</span>
-                  <span className="font-bold text-purple-700 ml-1">
-                    {trainSchedule.lastTrain.departureTime}発
-                  </span>
-                  <span className="text-gray-400">→</span>
-                  <span className="text-gray-700">
-                    {trainSchedule.lastTrain.arrivalTime}着
-                  </span>
-                </div>
-              )}
-              {trainSchedule.firstTrain && (
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-[10px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded font-bold border border-orange-200">始発</span>
-                  <span className="text-gray-600 font-medium">翌日 ({getNextDayStr()})</span>
-                  <span className="font-bold text-orange-700 ml-1">
-                    {trainSchedule.firstTrain.departureTime}発
-                  </span>
-                  <span className="text-gray-400">→</span>
-                  <span className="text-gray-700">
-                    {trainSchedule.firstTrain.arrivalTime}着
-                  </span>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        <div className="text-right min-w-[160px] neu-flat-sm px-4 py-3 rounded-xl">
-          <p className="text-xs text-blue-800 mb-0.5 font-bold">総額 ({adultCount}名)</p>
-          <div className="text-2xl font-bold text-gray-800 leading-none">
-            ¥{totalCost.toLocaleString()}
-          </div>
-          <p className="text-[10px] text-gray-500 mt-1 text-right">
-            (1名あたり ¥{costPerPerson.toLocaleString()})
-          </p>
         </div>
       </div>
     </a>

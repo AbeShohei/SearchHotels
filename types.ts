@@ -27,6 +27,8 @@ export interface HotelResult {
   stationId: string;
   hotelUrl?: string;
   hotelImageUrl?: string;
+  roomImageUrl?: string;
+  roomThumbnailUrl?: string;
   reviewAverage?: number;
   hotelLat?: number;
   hotelLng?: number;
