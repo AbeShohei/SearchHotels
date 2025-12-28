@@ -59,6 +59,9 @@ const App: React.FC = () => {
   const [selectedStation, setSelectedStation] = useState<GroupedStation | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
+  // Filtering state
+  const [onlyHighRated, setOnlyHighRated] = useState(false);
+
   // Station suggestions
   const suggestions = useMemo(() => {
     if (!stationInput.trim()) return groupedStations;
@@ -69,6 +72,12 @@ const App: React.FC = () => {
       (s.kana && s.kana.includes(query))
     ).slice(0, 8);
   }, [stationInput, groupedStations]);
+
+  // Filtered results
+  const filteredResults = useMemo(() => {
+    if (!onlyHighRated) return results;
+    return results.filter(r => (r.hotel.reviewAverage || 0) >= 4.0);
+  }, [results, onlyHighRated]);
 
   // Station selection handler
   const handleStationSelect = useCallback((station: GroupedStation) => {
@@ -128,11 +137,13 @@ const App: React.FC = () => {
             />
 
             <ResultList
-              results={results}
+              results={filteredResults}
               sortMode={sortMode}
               setSortMode={setSortMode}
               searchedParams={searchedParams}
               loading={loading}
+              onlyHighRated={onlyHighRated}
+              setOnlyHighRated={setOnlyHighRated}
             />
 
             {hasSearched && results.length === 0 && !loading && (

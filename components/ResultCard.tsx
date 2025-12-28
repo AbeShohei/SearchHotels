@@ -285,7 +285,53 @@ export const ResultCard: React.FC<ResultCardProps> = ({
           </div>
 
           {/* Total Footer - Horizontal Layout for Compactness */}
-          <div className="mt-auto flex items-end justify-end pt-1 gap-2">
+          <div className="mt-auto flex items-end justify-between pt-1 gap-2">
+
+            {/* Left: Metro Ticket Info */}
+            <div className="flex flex-col justify-end">
+              {/* Metro Multi-day Ticket Comparison */}
+              {
+                (() => {
+                  if (baseOneWayFare === 0) return null;
+
+                  // Ticket prices
+                  const tickets = [
+                    { hours: 24, price: 800, forNights: 1 },
+                    { hours: 48, price: 1200, forNights: 2 },
+                    { hours: 72, price: 1500, forNights: 3 },
+                  ];
+
+                  // Select appropriate ticket based on nightCount
+                  const ticket = nightCount >= 3 ? tickets[2] : nightCount === 2 ? tickets[1] : tickets[0];
+
+                  // Total round trip cost for the stay
+                  const roundTripTotal = baseOneWayFare * 2 * nightCount;
+
+                  // How many extra rides needed beyond round trips?
+                  const extraCostNeeded = ticket.price - roundTripTotal;
+                  const extraRidesNeeded = extraCostNeeded > 0 ? Math.ceil(extraCostNeeded / baseOneWayFare) : 0;
+
+                  const ticketLabel = `東京メトロ${ticket.hours}時間券(${ticket.price}円)`;
+
+                  if (extraRidesNeeded <= 0) {
+                    // Already worthwhile with just round trips
+                    return (
+                      <div className="bg-pink-50 px-2 py-0.5 rounded border border-pink-100 text-[9px] font-bold text-pink-600 animate-pulse">
+                        🎫 東京メトロ{ticketLabel}がお得！
+                      </div>
+                    );
+                  } else {
+                    // Need extra rides to break even
+                    return (
+                      <div className="bg-blue-50 px-2 py-0.5 rounded border border-blue-100 text-[9px] font-bold text-blue-600">
+                        💡往復+{extraRidesNeeded}回乗るなら{ticketLabel}がお得！
+                      </div>
+                    );
+                  }
+                })()
+              }
+            </div>
+
             <div className="flex flex-col items-end shrink-0">
               <div className="flex items-center gap-1 mb-0 leading-none">
                 {sortMode === 'price' && isCheapest && (
@@ -304,6 +350,6 @@ export const ResultCard: React.FC<ResultCardProps> = ({
 
         </div>
       </div>
-    </a>
+    </a >
   );
 };

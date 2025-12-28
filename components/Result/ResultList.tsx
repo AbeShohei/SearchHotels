@@ -16,6 +16,8 @@ interface ResultListProps {
         selectedDate: string;
     };
     loading?: boolean;
+    onlyHighRated?: boolean;
+    setOnlyHighRated?: (val: boolean) => void;
 }
 
 /**
@@ -27,7 +29,9 @@ export const ResultList: React.FC<ResultListProps> = ({
     sortMode,
     setSortMode,
     searchedParams,
-    loading = false
+    loading = false,
+    onlyHighRated = false,
+    setOnlyHighRated
 }) => {
     // Memoized calculations for tag detection
     const minPrice = useMemo(() =>
@@ -55,9 +59,24 @@ export const ResultList: React.FC<ResultListProps> = ({
         <div className="space-y-4">
             {/* Header with count and sort tabs */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center px-2 mb-4 gap-3 sm:gap-0">
-                <h2 className="text-lg font-bold text-gray-800">
-                    検索結果 <span className="text-sm font-normal text-gray-500 ml-2">{results.length}件</span>
-                </h2>
+                <div className="flex items-center gap-4">
+                    <h2 className="text-lg font-bold text-gray-800">
+                        検索結果 <span className="text-sm font-normal text-gray-500 ml-2">{results.length}件</span>
+                    </h2>
+
+                    {setOnlyHighRated && (
+                        <button
+                            onClick={() => setOnlyHighRated(!onlyHighRated)}
+                            className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold transition-all border ${onlyHighRated
+                                ? 'bg-yellow-50 text-yellow-600 border-yellow-200 shadow-sm ring-1 ring-yellow-100'
+                                : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
+                                }`}
+                        >
+                            <span className={onlyHighRated ? 'text-yellow-500' : 'text-gray-300'}>★</span>
+                            <span>評価4.0以上</span>
+                        </button>
+                    )}
+                </div>
                 <SortTabs sortMode={sortMode} setSortMode={setSortMode} />
             </div>
 
