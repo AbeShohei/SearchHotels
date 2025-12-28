@@ -110,7 +110,7 @@ export const SearchForm: React.FC<SearchFormProps> = ({
                                 <motion.button
                                     onClick={() => setAdultCount(Math.max(1, adultCount - 1))}
                                     disabled={loading || adultCount <= 1}
-                                    whileTap={{ scale: 0.95 }}
+                                    whileTap={{ scale: 0.85, boxShadow: "inset 0 2px 4px rgba(0,0,0,0.2)" }}
                                     className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${loading || adultCount <= 1 ? 'opacity-50 cursor-not-allowed' : 'neu-flat-sm text-blue-600 hover:scale-110'}`}
                                 >
                                     -
@@ -119,7 +119,7 @@ export const SearchForm: React.FC<SearchFormProps> = ({
                                 <motion.button
                                     onClick={() => setAdultCount(Math.min(4, adultCount + 1))}
                                     disabled={loading || adultCount >= 4}
-                                    whileTap={{ scale: 0.95 }}
+                                    whileTap={{ scale: 0.85, boxShadow: "inset 0 2px 4px rgba(0,0,0,0.2)" }}
                                     className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${loading || adultCount >= 4 ? 'opacity-50 cursor-not-allowed' : 'neu-flat-sm text-blue-600 hover:scale-110'}`}
                                 >
                                     +
@@ -134,7 +134,7 @@ export const SearchForm: React.FC<SearchFormProps> = ({
                                 <motion.button
                                     onClick={() => setRoomCount(Math.max(1, roomCount - 1))}
                                     disabled={loading || roomCount <= 1}
-                                    whileTap={{ scale: 0.95 }}
+                                    whileTap={{ scale: 0.85, boxShadow: "inset 0 2px 4px rgba(0,0,0,0.2)" }}
                                     className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${loading || roomCount <= 1 ? 'opacity-50 cursor-not-allowed' : 'neu-flat-sm text-blue-600 hover:scale-110'}`}
                                 >
                                     -
@@ -143,7 +143,7 @@ export const SearchForm: React.FC<SearchFormProps> = ({
                                 <motion.button
                                     onClick={() => setRoomCount(Math.min(4, roomCount + 1))}
                                     disabled={loading || roomCount >= 4}
-                                    whileTap={{ scale: 0.95 }}
+                                    whileTap={{ scale: 0.85, boxShadow: "inset 0 2px 4px rgba(0,0,0,0.2)" }}
                                     className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${loading || roomCount >= 4 ? 'opacity-50 cursor-not-allowed' : 'neu-flat-sm text-blue-600 hover:scale-110'}`}
                                 >
                                     +

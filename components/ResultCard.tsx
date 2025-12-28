@@ -176,9 +176,9 @@ export const ResultCard: React.FC<ResultCardProps> = ({
                     ★{result.hotel.reviewAverage.toFixed(2)}
                   </div>
                   {totalSavings !== undefined && totalSavings > 0 ? (
-                    <span className="text-xs text-green-600 font-bold mt-0.5">+{(totalSavings / 100).toFixed(2)} ★</span>
+                    <span className="text-xs text-green-600 font-bold mt-0.5">+{totalSavings.toFixed(2)} ★</span>
                   ) : totalSavings !== undefined && totalSavings < 0 ? (
-                    <span className="text-xs text-gray-400 mt-0.5">{(totalSavings / 100).toFixed(2)} ★</span>
+                    <span className="text-xs text-gray-400 mt-0.5">{totalSavings.toFixed(2)} ★</span>
                   ) : result.isBaseline ? (
                     <span className="text-xs text-gray-500 mt-0.5">基準</span>
                   ) : null}

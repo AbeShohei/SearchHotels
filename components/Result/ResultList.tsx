@@ -1,13 +1,14 @@
 import React, { useMemo } from 'react';
 import { ExtendedResult } from '../../types';
 import { ResultCard } from '../ResultCard';
+import { SortTabs, SortMode } from './SortTabs';
 import { getLineColor } from '../../constants';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface ResultListProps {
     results: ExtendedResult[];
-    sortMode: 'price' | 'review' | 'cospa';
-    setSortMode: (mode: 'price' | 'review' | 'cospa') => void;
+    sortMode: SortMode;
+    setSortMode: (mode: SortMode) => void;
     searchedParams: {
         adultCount: number;
         nightCount: number;
@@ -17,14 +18,27 @@ interface ResultListProps {
     loading?: boolean;
 }
 
-export const ResultList: React.FC<ResultListProps> = ({ results, sortMode, setSortMode, searchedParams, loading = false }) => {
+/**
+ * Displays search results with sorting controls and tag badges.
+ * Tags (cheapest, highest rated, optimal) only appear when loading is complete.
+ */
+export const ResultList: React.FC<ResultListProps> = ({
+    results,
+    sortMode,
+    setSortMode,
+    searchedParams,
+    loading = false
+}) => {
+    // Memoized calculations for tag detection
     const minPrice = useMemo(() =>
         results.length > 0 ? Math.min(...results.map(r => r.totalCost)) : Infinity,
-        [results]);
+        [results]
+    );
 
     const maxReview = useMemo(() =>
         results.length > 0 ? Math.max(...results.map(r => r.hotel.reviewAverage || 0)) : 0,
-        [results]);
+        [results]
+    );
 
     const baselineResult = results.find(r => r.isBaseline);
 
@@ -39,36 +53,12 @@ export const ResultList: React.FC<ResultListProps> = ({ results, sortMode, setSo
 
     return (
         <div className="space-y-4">
+            {/* Header with count and sort tabs */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center px-2 mb-4 gap-3 sm:gap-0">
                 <h2 className="text-lg font-bold text-gray-800">
                     検索結果 <span className="text-sm font-normal text-gray-500 ml-2">{results.length}件</span>
                 </h2>
-                <div className="flex w-full sm:w-auto p-1.5 neu-pressed rounded-xl relative isolate gap-2">
-                    {(['price', 'review', 'cospa'] as const).map((mode) => {
-                        const label = mode === 'price' ? '料金順' : mode === 'review' ? 'レビュー順' : 'タイパ順';
-                        const activeColor = mode === 'price' ? 'text-blue-600' : mode === 'review' ? 'text-orange-600' : 'text-green-600';
-                        const isActive = sortMode === mode;
-
-                        return (
-                            <motion.button
-                                key={mode}
-                                onClick={() => setSortMode(mode)}
-                                whileTap={{ scale: 0.95 }}
-                                className={`relative flex-1 sm:flex-none px-3 py-1.5 text-xs font-bold rounded-lg transition-colors z-10 ${isActive ? activeColor : 'text-gray-500 hover:text-gray-700'
-                                    }`}
-                            >
-                                {isActive && (
-                                    <motion.div
-                                        layoutId="activeSortTab"
-                                        className="absolute inset-0 neu-flat-sm rounded-lg -z-10"
-                                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                                    />
-                                )}
-                                {label}
-                            </motion.button>
-                        );
-                    })}
-                </div>
+                <SortTabs sortMode={sortMode} setSortMode={setSortMode} />
             </div>
 
             {/* Jump to Baseline Button */}
@@ -84,6 +74,7 @@ export const ResultList: React.FC<ResultListProps> = ({ results, sortMode, setSo
                 </div>
             )}
 
+            {/* Results List */}
             <AnimatePresence>
                 {results.map((result, index) => {
                     const price = result.totalCost;
@@ -92,7 +83,6 @@ export const ResultList: React.FC<ResultListProps> = ({ results, sortMode, setSo
                     const isOptimal = !loading && sortMode === 'cospa' && index === 0;
                     const isHighestRated = !loading && (result.hotel.reviewAverage || 0) === maxReview && maxReview > 0;
 
-                    // 代表路線の色を使用
                     const mainLineId = result.lines && result.lines.length > 0 ? result.lines[0] : undefined;
                     const lineColor = getLineColor(mainLineId);
 
