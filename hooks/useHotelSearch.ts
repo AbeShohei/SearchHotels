@@ -186,61 +186,79 @@ export const useHotelSearch = (): UseHotelSearchResult => {
                 if (hotels.length === 0) continue;
 
                 const targetHotels = hotels; // 全モードで全件表示
-                for (let i = 0; i < targetHotels.length; i++) {
-                    const h = targetHotels[i];
-                    const hotel = { ...h, stationId: route.stationId };
 
-                    let icFare = 200;
-                    let ticketFare = 200;
+                // 運賃計算（駅ごとに1回）
+                let icFare = 200;
+                let ticketFare = 200;
+                if (name === target.name) {
+                    icFare = 0;
+                    ticketFare = 0;
+                } else {
+                    const fareData = faresMap.get(route.stationId);
+                    icFare = fareData ? fareData.icFare : 200;
+                    ticketFare = fareData ? fareData.ticketFare : 200;
+                }
 
-                    if (name === target.name) {
-                        icFare = 0;
-                        ticketFare = 0;
-                    } else {
-                        const fareData = faresMap.get(route.stationId);
-                        icFare = fareData ? fareData.icFare : 200;
-                        ticketFare = fareData ? fareData.ticketFare : 200;
-                    }
+                // 電車スケジュール取得（駅ごとに1回だけ - 並列化のため事前に取得）
+                let trainSchedule;
+                if (route.transfers === 0 && route.lines.length > 0) {
+                    const lineId = route.lines[0];
+                    const line = METRO_LINES.find(l => l.id === lineId);
+                    const targetStation = target.stations.find(s => s.lineId === lineId);
+                    if (line && targetStation) {
+                        const response = await odpt.getLineStations(line);
+                        const stations = response.stations;
+                        const hotelIndex = stations.findIndex(s => s.id === route.stationId);
+                        const targetIndex = stations.findIndex(s => s.id === targetStation.id);
 
-                    const totalCost = hotel.price + (icFare * 2 * adultCount * diff);
-                    let trainSchedule;
-
-                    // Train Schedule Logic
-                    if (route.transfers === 0 && route.lines.length > 0) {
-                        const lineId = route.lines[0];
-                        const line = METRO_LINES.find(l => l.id === lineId);
-                        const targetStation = target.stations.find(s => s.lineId === lineId);
-                        if (line && targetStation) {
-                            const response = await odpt.getLineStations(line);
-                            const stations = response.stations;
-                            const hotelIndex = stations.findIndex(s => s.id === route.stationId);
-                            const targetIndex = stations.findIndex(s => s.id === targetStation.id);
-
-                            if (hotelIndex !== -1 && targetIndex !== -1) {
-                                let dirToHotel = '';
-                                let dirToDest = '';
-                                if (hotelIndex < targetIndex) {
-                                    dirToDest = line.directionAsc;
-                                    dirToHotel = line.directionDesc;
-                                } else {
-                                    dirToDest = line.directionDesc;
-                                    dirToHotel = line.directionAsc;
-                                }
-                                if (dirToHotel && dirToDest) {
-                                    trainSchedule = await getFirstLastTrains(
-                                        targetStation.id, route.stationId, dirToHotel, dirToDest,
-                                        new Date(selectedDate), route.totalTime
-                                    );
-                                }
+                        if (hotelIndex !== -1 && targetIndex !== -1) {
+                            let dirToHotel = '';
+                            let dirToDest = '';
+                            if (hotelIndex < targetIndex) {
+                                dirToDest = line.directionAsc;
+                                dirToHotel = line.directionDesc;
+                            } else {
+                                dirToDest = line.directionDesc;
+                                dirToHotel = line.directionAsc;
+                            }
+                            if (dirToHotel && dirToDest) {
+                                trainSchedule = await getFirstLastTrains(
+                                    targetStation.id, route.stationId, dirToHotel, dirToDest,
+                                    new Date(selectedDate), route.totalTime
+                                );
                             }
                         }
                     }
+                }
 
-                    let walkTime = 0;
-                    if (h.hotelLat && h.hotelLng && lat && lng) {
-                        const walkResult = await getWalkingTimeToStation(h.hotelLat, h.hotelLng, lat, lng);
-                        walkTime = walkResult || 0;
-                    }
+                // 徒歩時間を計算（バッチ処理で並列数を制限）
+                const walkTimes: (number | null)[] = [];
+                const BATCH_SIZE = 3; // 同時に3件まで
+
+                for (let i = 0; i < targetHotels.length; i += BATCH_SIZE) {
+                    const batch = targetHotels.slice(i, i + BATCH_SIZE);
+                    const batchPromises = batch.map(h => {
+                        if (h.hotelLat && h.hotelLng && lat && lng) {
+                            return getWalkingTimeToStation(h.hotelLat, h.hotelLng, lat, lng)
+                                .catch(() => {
+                                    // APIエラー時は距離ベースで推定（80m/分で計算）
+                                    const dx = (h.hotelLng - lng) * 91000; // 経度差→メートル
+                                    const dy = (h.hotelLat - lat) * 111000; // 緯度差→メートル
+                                    const distance = Math.sqrt(dx * dx + dy * dy);
+                                    return Math.ceil(distance / 80);
+                                });
+                        }
+                        return Promise.resolve(0);
+                    });
+                    const batchResults = await Promise.all(batchPromises);
+                    walkTimes.push(...batchResults);
+                }
+
+                // 結果をまとめて追加
+                targetHotels.forEach((h, i) => {
+                    const hotel = { ...h, stationId: route.stationId };
+                    const totalCost = hotel.price + (icFare * 2 * adultCount * diff);
+                    const walkTime = walkTimes[i] || 0;
 
                     tempResults.push({
                         id: `${route.stationId}_${i}`,
@@ -262,7 +280,7 @@ export const useHotelSearch = (): UseHotelSearchResult => {
                         trainSchedule,
                         numberOfStops: route.numberOfStops
                     });
-                }
+                });
 
                 // Incremental Update - use ref for current sort mode
                 const sorted = calculateAndSortResults(tempResults, sortModeRef.current, target.name);
@@ -274,7 +292,43 @@ export const useHotelSearch = (): UseHotelSearchResult => {
         }
 
         // Final update - use ref for current sort mode
-        const finalSorted = calculateAndSortResults(tempResults, sortModeRef.current, target.name);
+        // 同じホテルの場合、所要時間が最短のものと総コストが最安のものを残す
+        const shortestTimeMap = new Map<string, typeof tempResults[0]>();
+        const lowestCostMap = new Map<string, typeof tempResults[0]>();
+
+        for (const result of tempResults) {
+            const hotelName = result.hotel.hotelName;
+            const totalTravelTime = result.trainTime + result.walkTime;
+
+            // 所要時間が最短のもの
+            const existingTime = shortestTimeMap.get(hotelName);
+            if (!existingTime || (existingTime.trainTime + existingTime.walkTime) > totalTravelTime) {
+                shortestTimeMap.set(hotelName, result);
+            }
+
+            // 総コストが最安のもの
+            const existingCost = lowestCostMap.get(hotelName);
+            if (!existingCost || existingCost.totalCost > result.totalCost) {
+                lowestCostMap.set(hotelName, result);
+            }
+        }
+
+        // 重複を避けてマージ（ID が異なる場合のみ両方追加）
+        const deduplicatedResults: typeof tempResults = [];
+        const addedIds = new Set<string>();
+
+        for (const [hotelName, shortestResult] of shortestTimeMap) {
+            deduplicatedResults.push(shortestResult);
+            addedIds.add(shortestResult.id);
+
+            const lowestCostResult = lowestCostMap.get(hotelName);
+            if (lowestCostResult && !addedIds.has(lowestCostResult.id)) {
+                deduplicatedResults.push(lowestCostResult);
+                addedIds.add(lowestCostResult.id);
+            }
+        }
+
+        const finalSorted = calculateAndSortResults(deduplicatedResults, sortModeRef.current, target.name);
         setResults(finalSorted);
         setLoading(false);
         setLoadingProgress('');
