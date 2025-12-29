@@ -185,7 +185,7 @@ export const useHotelSearch = (): UseHotelSearchResult => {
                 const hotels = await searchHotels(lat, lng, selectedDate, checkOutDate, adultCount, roomCount);
                 if (hotels.length === 0) continue;
 
-                const targetHotels = sortModeRef.current === 'review' ? hotels : hotels.slice(0, 5);
+                const targetHotels = hotels; // 全モードで全件表示
                 for (let i = 0; i < targetHotels.length; i++) {
                     const h = targetHotels[i];
                     const hotel = { ...h, stationId: route.stationId };
