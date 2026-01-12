@@ -3,6 +3,7 @@ import { GroupedStation } from './types';
 import { useHotelSearch } from './hooks/useHotelSearch';
 
 import { Header } from './components/Layout/Header';
+import { Footer } from './components/Layout/Footer';
 import { ScrollToTopButton } from './components/Layout/ScrollToTopButton';
 import { Toast } from './components/Layout/Toast';
 import { SearchForm } from './components/Search/SearchForm';
@@ -149,6 +150,7 @@ const App: React.FC = () => {
           </div>
         )}
       </main>
+      <Footer />
       <ScrollToTopButton />
       <Toast
         message={toastMessage}

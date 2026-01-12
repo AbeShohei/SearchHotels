@@ -45,9 +45,9 @@ const steps: OnboardingStep[] = [
 // Mock hotel card component for tutorial with annotations
 const MockHotelCardWithAnnotations: React.FC = () => {
     return (
-        <div className="relative pt-4 px-4 pb-2">
+        <div className="relative pt-4 px-2 sm:px-4 pb-2">
             {/* Main Card */}
-            <div className="bg-white rounded-xl shadow-lg overflow-visible border-2 border-orange-400 relative mx-auto" style={{ maxWidth: '320px' }}>
+            <div className="bg-white rounded-xl shadow-lg overflow-visible border-2 border-orange-400 relative mx-auto w-full max-w-[320px]">
                 {/* Badge - 最適 */}
                 <div className="absolute -top-2.5 right-2 flex gap-1 z-10">
                     <span className="bg-orange-500 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow">
@@ -124,19 +124,53 @@ export const OnboardingGuide: React.FC = () => {
     const [highlightRect, setHighlightRect] = useState<DOMRect | null>(null);
 
 
+    // Disable body scroll when onboarding is visible and scroll to top
+    useEffect(() => {
+        if (isVisible) {
+            // Scroll to top first to ensure consistent starting position
+            window.scrollTo({ top: 0, behavior: 'auto' });
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+        return () => {
+            document.body.style.overflow = '';
+        };
+    }, [isVisible]);
+
     useEffect(() => {
         if (!isVisible) return;
 
         const step = steps[currentStep];
         if (step.targetSelector) {
-            const element = document.querySelector(step.targetSelector);
-            if (element) {
-                const rect = element.getBoundingClientRect();
-                setHighlightRect(rect);
-                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            } else {
-                setHighlightRect(null);
-            }
+            // Small delay to ensure scroll lock is applied
+            const timeoutId = setTimeout(() => {
+                const element = document.querySelector(step.targetSelector!);
+                if (element) {
+                    const rect = element.getBoundingClientRect();
+
+                    // Check if element is outside viewport
+                    const isOutOfView = rect.top < 0 || rect.bottom > window.innerHeight;
+
+                    if (isOutOfView) {
+                        // Scroll to show element near top of viewport (not center)
+                        window.scrollTo({
+                            top: window.scrollY + rect.top - 100,
+                            behavior: 'smooth'
+                        });
+                        // Update rect after scroll
+                        setTimeout(() => {
+                            const newRect = element.getBoundingClientRect();
+                            setHighlightRect(newRect);
+                        }, 300);
+                    } else {
+                        setHighlightRect(rect);
+                    }
+                } else {
+                    setHighlightRect(null);
+                }
+            }, 50);
+            return () => clearTimeout(timeoutId);
         } else {
             setHighlightRect(null);
         }
@@ -167,16 +201,35 @@ export const OnboardingGuide: React.FC = () => {
 
     return (
         <AnimatePresence>
-            <div className="fixed inset-0 z-50">
-                {/* Dark overlay - only for non-highlighted areas */}
-                {!highlightRect && (
-                    <div
-                        className="absolute inset-0"
-                        style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }}
+            <div className="fixed inset-0 z-50 overflow-hidden">
+                {/* Dark overlay with SVG mask for spotlight cutout */}
+                <svg className="absolute inset-0 w-full h-full" style={{ pointerEvents: 'none' }}>
+                    <defs>
+                        <mask id="spotlight-mask">
+                            <rect x="0" y="0" width="100%" height="100%" fill="white" />
+                            {highlightRect && (
+                                <rect
+                                    x={highlightRect.left - 8}
+                                    y={highlightRect.top - 8}
+                                    width={highlightRect.width + 16}
+                                    height={highlightRect.height + 16}
+                                    rx="16"
+                                    fill="black"
+                                />
+                            )}
+                        </mask>
+                    </defs>
+                    <rect
+                        x="0"
+                        y="0"
+                        width="100%"
+                        height="100%"
+                        fill="rgba(0, 0, 0, 0.6)"
+                        mask="url(#spotlight-mask)"
                     />
-                )}
+                </svg>
 
-                {/* Spotlight effect */}
+                {/* Spotlight border effect */}
                 {highlightRect && (
                     <motion.div
                         initial={{ opacity: 0 }}
@@ -189,7 +242,7 @@ export const OnboardingGuide: React.FC = () => {
                             height: highlightRect.height + 16,
                             borderRadius: '16px',
                             border: '3px solid #3B82F6',
-                            boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.6), 0 0 20px rgba(59, 130, 246, 0.5)',
+                            boxShadow: '0 0 20px rgba(59, 130, 246, 0.5)',
                         }}
                     />
                 )}
@@ -198,17 +251,30 @@ export const OnboardingGuide: React.FC = () => {
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className={`absolute z-20 ${isCardStep ? 'inset-4 flex items-center justify-center' : ''}`}
-                    style={!isCardStep && highlightRect ? {
-                        left: Math.min(Math.max(16, highlightRect.left), window.innerWidth - 356),
-                        top: highlightRect.bottom + 16,
-                    } : !isCardStep ? {
+                    className={`absolute z-20 ${isCardStep ? 'inset-2 sm:inset-4 flex items-center justify-center' : 'left-4 right-4'}`}
+                    style={!isCardStep && highlightRect ? (() => {
+                        const tooltipHeight = 200; // Approximate tooltip height
+                        const spaceBelow = window.innerHeight - highlightRect.bottom;
+                        const spaceAbove = highlightRect.top;
+
+                        // If more space above or not enough space below, show above
+                        if (spaceBelow < tooltipHeight + 32 && spaceAbove > spaceBelow) {
+                            return {
+                                bottom: window.innerHeight - highlightRect.top + 16,
+                                top: 'auto',
+                            };
+                        }
+                        // Show below
+                        return {
+                            top: highlightRect.bottom + 16,
+                        };
+                    })() : !isCardStep ? {
                         left: '50%',
                         top: '50%',
                         transform: 'translate(-50%, -50%)'
                     } : undefined}
                 >
-                    <div className={`bg-white rounded-2xl shadow-2xl overflow-hidden ${isCardStep ? 'max-w-md w-full max-h-[90vh] overflow-y-auto' : 'max-w-sm w-full'}`}>
+                    <div className={`bg-white rounded-2xl shadow-2xl overflow-hidden mx-auto ${isCardStep ? 'max-w-md w-full max-h-[85vh] overflow-y-auto' : 'max-w-[340px] w-full'}`}>
                         {/* Header */}
                         <div className="bg-gradient-to-r from-blue-500 to-blue-600 px-4 py-3 text-white">
                             <div className="flex justify-between items-center">
@@ -280,11 +346,11 @@ export const OnboardingGuide: React.FC = () => {
                         </div>
 
                         {/* Footer */}
-                        <div className="px-4 pb-4 flex justify-between items-center">
+                        <div className="px-3 sm:px-4 pb-3 sm:pb-4 flex justify-between items-center gap-2">
                             <button
                                 onClick={handlePrev}
                                 disabled={currentStep === 0}
-                                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${currentStep === 0
+                                className={`px-2 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${currentStep === 0
                                     ? 'text-gray-300 cursor-not-allowed'
                                     : 'text-gray-600 hover:bg-gray-100'
                                     }`}
@@ -294,7 +360,7 @@ export const OnboardingGuide: React.FC = () => {
 
                             <button
                                 onClick={handleComplete}
-                                className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+                                className="text-[10px] sm:text-xs text-gray-400 hover:text-gray-600 transition-colors whitespace-nowrap"
                             >
                                 スキップ
                             </button>
@@ -302,7 +368,7 @@ export const OnboardingGuide: React.FC = () => {
                             <motion.button
                                 whileTap={{ scale: 0.95 }}
                                 onClick={handleNext}
-                                className="px-4 py-1.5 bg-blue-500 text-white rounded-lg text-sm font-bold shadow hover:bg-blue-600 transition-colors"
+                                className="px-3 sm:px-4 py-1.5 bg-blue-500 text-white rounded-lg text-xs sm:text-sm font-bold shadow hover:bg-blue-600 transition-colors whitespace-nowrap"
                             >
                                 {currentStep === steps.length - 1 ? '始める 🚀' : '次へ →'}
                             </motion.button>
