@@ -43,7 +43,7 @@ export const SearchForm: React.FC<SearchFormProps> = ({
         <div className="neu-flat rounded-2xl p-6 mb-8 relative z-30">
             {/* Inputs */}
             <div className="grid grid-cols-1 gap-4 mb-4">
-                <div className="relative">
+                <div className="relative" data-onboarding="station">
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">目的地の最寄り駅</label>
                     <input
                         type="text"
@@ -88,7 +88,7 @@ export const SearchForm: React.FC<SearchFormProps> = ({
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="sm:col-span-2">
+                    <div className="sm:col-span-2" data-onboarding="date">
                         <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">宿泊日程</label>
                         <DateRangePicker
                             checkInDate={selectedDate}
@@ -102,7 +102,7 @@ export const SearchForm: React.FC<SearchFormProps> = ({
                     </div>
 
                     {/* Counter Inputs for People & Rooms */}
-                    <div className="grid grid-cols-2 gap-4 sm:col-span-2">
+                    <div className="grid grid-cols-2 gap-4 sm:col-span-2" data-onboarding="guests">
                         {/* Adult Count */}
                         <div>
                             <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">人数</label>
@@ -155,7 +155,7 @@ export const SearchForm: React.FC<SearchFormProps> = ({
 
             </div>
 
-            <div className="mt-6">
+            <div className="mt-6" data-onboarding="search">
                 <motion.button
                     onClick={handleSearch}
                     disabled={loading || !isSearchable}

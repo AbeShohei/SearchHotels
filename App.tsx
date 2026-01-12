@@ -8,6 +8,7 @@ import { Toast } from './components/Layout/Toast';
 import { SearchForm } from './components/Search/SearchForm';
 import { ResultList } from './components/Result/ResultList';
 import { LiquidBackground } from './components/Layout/LiquidBackground';
+import { OnboardingGuide } from './components/Layout/OnboardingGuide';
 
 /**
  * Main application component.
@@ -155,6 +156,7 @@ const App: React.FC = () => {
         onClose={() => setShowToast(false)}
         type="success"
       />
+      <OnboardingGuide />
     </div >
   );
 };
