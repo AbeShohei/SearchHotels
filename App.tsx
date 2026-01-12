@@ -8,15 +8,12 @@ import { Toast } from './components/Layout/Toast';
 import { SearchForm } from './components/Search/SearchForm';
 import { ResultList } from './components/Result/ResultList';
 import { LiquidBackground } from './components/Layout/LiquidBackground';
-import { HomePage } from './components/Layout/HomePage';
 
 /**
  * Main application component.
  * Uses useHotelSearch hook for search functionality.
  */
 const App: React.FC = () => {
-  // Show home page initially
-  const [showHome, setShowHome] = useState(true);
   // Use custom hook for search functionality
   const {
     groupedStations,
@@ -107,58 +104,48 @@ const App: React.FC = () => {
       <LiquidBackground />
       <Header />
       <main className="max-w-3xl mx-auto p-4 -mt-12 relative z-30">
-        {showHome ? (
-          <HomePage
-            isLoading={!isNetworkLoaded}
-            isReady={isNetworkLoaded}
-            onStart={() => setShowHome(false)}
-          />
-        ) : (
-          <>
-            <SearchForm
-              stationInput={stationInput}
-              setStationInput={setStationInput}
-              groupedStations={groupedStations}
-              selectedStation={selectedStation}
-              setSelectedStation={setSelectedStation}
-              showSuggestions={showSuggestions}
-              setShowSuggestions={setShowSuggestions}
-              handleStationSelect={handleStationSelect}
-              suggestions={suggestions}
-              selectedDate={selectedDate}
-              setSelectedDate={setSelectedDate}
-              checkOutDate={checkOutDate}
-              setCheckOutDate={setCheckOutDate}
-              adultCount={adultCount}
-              setAdultCount={setAdultCount}
-              roomCount={roomCount}
-              setRoomCount={setRoomCount}
-              loading={loading}
-              isSearchable={isSearchable}
-              handleSearch={onSearch}
-              loadingProgress={loadingProgress}
-              progressPercent={progressPercent}
-            />
+        <SearchForm
+          stationInput={stationInput}
+          setStationInput={setStationInput}
+          groupedStations={groupedStations}
+          selectedStation={selectedStation}
+          setSelectedStation={setSelectedStation}
+          showSuggestions={showSuggestions}
+          setShowSuggestions={setShowSuggestions}
+          handleStationSelect={handleStationSelect}
+          suggestions={suggestions}
+          selectedDate={selectedDate}
+          setSelectedDate={setSelectedDate}
+          checkOutDate={checkOutDate}
+          setCheckOutDate={setCheckOutDate}
+          adultCount={adultCount}
+          setAdultCount={setAdultCount}
+          roomCount={roomCount}
+          setRoomCount={setRoomCount}
+          loading={loading}
+          isSearchable={isSearchable}
+          handleSearch={onSearch}
+          loadingProgress={loadingProgress}
+          progressPercent={progressPercent}
+        />
 
-            <ResultList
-              results={filteredResults}
-              sortMode={sortMode}
-              setSortMode={setSortMode}
-              searchedParams={searchedParams}
-              loading={loading}
-              onlyHighRated={onlyHighRated}
-              setOnlyHighRated={setOnlyHighRated}
-            />
+        <ResultList
+          results={filteredResults}
+          sortMode={sortMode}
+          setSortMode={setSortMode}
+          searchedParams={searchedParams}
+          loading={loading}
+          onlyHighRated={onlyHighRated}
+          setOnlyHighRated={setOnlyHighRated}
+        />
 
-            {hasSearched && results.length === 0 && !loading && (
-              <div className="text-center py-12 bg-white rounded-xl shadow-md">
-                <p className="text-gray-500 font-bold mb-2">検索結果が見つかりませんでした</p>
-                <p className="text-sm text-gray-400">
-                  日付や場所を変えて再度お試しください。
-                </p>
-              </div>
-            )}
-          </>
+        {hasSearched && results.length === 0 && !loading && (
+          <div className="text-center py-12 bg-white rounded-xl shadow-md">
+            <p className="text-gray-500 font-bold mb-2">検索結果が見つかりませんでした</p>
+            <p className="text-sm text-gray-400">
+              日付や場所を変えて再度お試しください。
+            </p>
+          </div>
         )}
       </main>
       <ScrollToTopButton />
@@ -168,7 +155,7 @@ const App: React.FC = () => {
         onClose={() => setShowToast(false)}
         type="success"
       />
-    </div>
+    </div >
   );
 };
 

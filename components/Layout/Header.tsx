@@ -15,7 +15,7 @@ export const Header: React.FC = () => {
 
             <div className="pt-6 px-6 pb-20 max-w-3xl mx-auto flex flex-col sm:flex-row justify-between items-center sm:items-start gap-2 sm:gap-0">
                 <div className="text-center sm:text-left">
-                    <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-blue-600">東京メトロ沿線ホテル検索</h1>
+                    <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-blue-600">STAYLINE</h1>
                 </div>
                 <div className="text-[10px] text-gray-400 text-center sm:text-right space-y-1">
                     <a href="https://webservice.rakuten.co.jp/" target="_blank" rel="noopener noreferrer" className="hover:text-blue-500 block transition-colors">

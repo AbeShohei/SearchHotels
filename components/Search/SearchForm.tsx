@@ -44,7 +44,7 @@ export const SearchForm: React.FC<SearchFormProps> = ({
             {/* Inputs */}
             <div className="grid grid-cols-1 gap-4 mb-4">
                 <div className="relative">
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">目的地</label>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">目的地の最寄り駅</label>
                     <input
                         type="text"
                         value={stationInput}

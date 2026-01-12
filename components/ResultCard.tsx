@@ -230,7 +230,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({
             <div className="sm:pl-2 sm:border-l sm:border-gray-200 pt-1 sm:pt-0 border-t sm:border-t-0 border-gray-200 mt-1 sm:mt-0 flex flex-col justify-between">
               <div>
                 <div className="font-bold text-gray-600 mb-0.5 border-b border-gray-200 pb-0.5 text-sm">移動情報</div>
-                {trainSchedule ? (
+                {trainSchedule && result.trainTime > 0 ? (
                   (() => {
                     const formatDate = (dateStr: string, addDays: number = 0) => {
                       if (!dateStr) return '';
@@ -267,9 +267,9 @@ export const ResultCard: React.FC<ResultCardProps> = ({
                       </>
                     );
                   })()
-                ) : (
+                ) : result.trainTime > 0 ? (
                   <div className="text-gray-400 text-center py-1 text-sm">- 時刻表取得中 -</div>
-                )}
+                ) : null}
               </div>
 
               {/* Moved Travel Time Info */}
