@@ -72,7 +72,7 @@ export const useHotelSearch = (): UseHotelSearchResult => {
     });
 
     // Sort state
-    const [sortMode, setSortMode] = useState<SortMode>('cospa');
+    const [sortMode, setSortMode] = useState<SortMode>('price');
     const sortModeRef = useRef<SortMode>(sortMode); // Ref for real-time access in async loops
     const [targetStationName, setTargetStationName] = useState<string>('');
     const targetStationRef = useRef<string>(''); // Ref for real-time access
@@ -100,7 +100,13 @@ export const useHotelSearch = (): UseHotelSearchResult => {
     useEffect(() => {
         sortModeRef.current = sortMode; // Keep ref in sync
         if (results.length === 0 || !targetStationName) return;
-        const sorted = calculateAndSortResults(results, sortMode, targetStationName);
+        const sorted = calculateAndSortResults(
+            results,
+            sortMode,
+            targetStationName,
+            searchedParams.adultCount,
+            searchedParams.nightCount
+        );
         setResults(sorted);
     }, [sortMode]);
 
@@ -283,7 +289,7 @@ export const useHotelSearch = (): UseHotelSearchResult => {
                 });
 
                 // Incremental Update - use ref for current sort mode
-                const sorted = calculateAndSortResults(tempResults, sortModeRef.current, target.name);
+                const sorted = calculateAndSortResults(tempResults, sortModeRef.current, target.name, adultCount, diff);
                 setResults(sorted);
 
             } catch (e) {
@@ -328,7 +334,7 @@ export const useHotelSearch = (): UseHotelSearchResult => {
             }
         }
 
-        const finalSorted = calculateAndSortResults(deduplicatedResults, sortModeRef.current, target.name);
+        const finalSorted = calculateAndSortResults(deduplicatedResults, sortModeRef.current, target.name, adultCount, diff);
         setResults(finalSorted);
         setLoading(false);
         setLoadingProgress('');

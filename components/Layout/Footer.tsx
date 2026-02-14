@@ -6,7 +6,7 @@ import React from 'react';
  */
 export const Footer: React.FC = () => {
     return (
-        <footer className="relative z-30 mt-8 pb-8">
+        <footer className="relative z-10 mt-8 pb-8">
             <div className="max-w-3xl mx-auto px-4">
                 <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-6 text-sm text-gray-600 leading-relaxed">
                     <h3 className="font-bold text-gray-700 mb-3 flex items-center gap-2">

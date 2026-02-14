@@ -18,6 +18,8 @@ interface ResultListProps {
     loading?: boolean;
     onlyHighRated?: boolean;
     setOnlyHighRated?: (val: boolean) => void;
+    maxTimeFilter: number;
+    setMaxTimeFilter: (val: number) => void;
 }
 
 /**
@@ -31,7 +33,9 @@ export const ResultList: React.FC<ResultListProps> = ({
     searchedParams,
     loading = false,
     onlyHighRated = false,
-    setOnlyHighRated
+    setOnlyHighRated,
+    maxTimeFilter,
+    setMaxTimeFilter
 }) => {
     // Memoized calculations for tag detection
     const minPrice = useMemo(() =>
@@ -78,6 +82,50 @@ export const ResultList: React.FC<ResultListProps> = ({
                     )}
                 </div>
                 <SortTabs sortMode={sortMode} setSortMode={setSortMode} />
+            </div>
+
+            {/* Time Filter Slider */}
+            <div className="px-2 mb-4">
+                <div className="bg-white rounded-xl p-4 shadow-sm">
+                    <div className="flex items-center justify-between mb-3">
+                        <label className="text-sm font-medium text-gray-700">
+                            所要時間で絞り込み
+                        </label>
+                        <span className="text-sm font-bold text-blue-600">
+                            {maxTimeFilter === 90 ? '制限なし' : `${maxTimeFilter}分以内`}
+                        </span>
+                    </div>
+                    <div className="relative h-6 flex items-center">
+                        {/* Track background */}
+                        <div className="absolute w-full h-2 bg-gray-300 rounded-full" />
+                        {/* Filled track */}
+                        <div
+                            className="absolute h-2 bg-blue-500 rounded-full transition-all duration-150"
+                            style={{ width: `${((maxTimeFilter - 5) / (90 - 5)) * 100}%` }}
+                        />
+                        {/* Thumb */}
+                        <div
+                            className="absolute w-5 h-5 bg-blue-500 rounded-full shadow-md border-2 border-white transition-all duration-150 pointer-events-none"
+                            style={{ left: `calc(${((maxTimeFilter - 5) / (90 - 5)) * 100}% - 10px)` }}
+                        />
+                        {/* Invisible input for interaction */}
+                        <input
+                            type="range"
+                            min="5"
+                            max="90"
+                            step="5"
+                            value={maxTimeFilter}
+                            onChange={(e) => setMaxTimeFilter(Number(e.target.value))}
+                            className="absolute w-full h-6 opacity-0 cursor-pointer z-10"
+                        />
+                    </div>
+                    <div className="relative h-4 mt-2">
+                        <span className="absolute left-0 text-xs text-gray-400 -translate-x-0">5分</span>
+                        <span className="absolute text-xs text-gray-400 -translate-x-1/2" style={{ left: '29.4%' }}>30分</span>
+                        <span className="absolute text-xs text-gray-400 -translate-x-1/2" style={{ left: '64.7%' }}>60分</span>
+                        <span className="absolute right-0 text-xs text-gray-400 translate-x-0">制限なし</span>
+                    </div>
+                </div>
             </div>
 
             {/* Jump to Baseline Button */}

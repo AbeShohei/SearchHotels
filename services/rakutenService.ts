@@ -4,6 +4,55 @@ const RAKUTEN_API_URL = "https://app.rakuten.co.jp/services/api/Travel/VacantHot
 // @ts-ignore
 const RAKUTEN_APP_ID = import.meta.env.VITE_RAKUTEN_APP_ID || process.env.VITE_RAKUTEN_APP_ID || '';
 
+// キャッシュの型定義
+interface CacheEntry {
+    data: HotelResult[];
+    cachedDate: string; // YYYY-MM-DD 形式
+}
+
+// インメモリキャッシュ（ページセッション内）
+const hotelCache = new Map<string, CacheEntry>();
+
+// 今日の日付をYYYY-MM-DD形式で取得
+const getTodayString = (): string => {
+    return new Date().toISOString().split('T')[0];
+};
+
+// キャッシュキーを生成
+const getCacheKey = (
+    lat: number,
+    lng: number,
+    checkinDate: string,
+    checkoutDate: string,
+    adultNum: number,
+    roomNum: number
+): string => {
+    // 緯度経度は小数点2桁で丸める（近い場所は同じキャッシュを使う）
+    return `${checkinDate}_${checkoutDate}_${lat.toFixed(2)}_${lng.toFixed(2)}_${adultNum}_${roomNum}`;
+};
+
+// キャッシュから取得（当日分のみ有効）
+const getFromCache = (key: string): HotelResult[] | null => {
+    const entry = hotelCache.get(key);
+    if (!entry) return null;
+
+    // 当日のキャッシュのみ有効
+    if (entry.cachedDate !== getTodayString()) {
+        hotelCache.delete(key);
+        return null;
+    }
+
+    return entry.data;
+};
+
+// キャッシュに保存
+const saveToCache = (key: string, data: HotelResult[]): void => {
+    hotelCache.set(key, {
+        data,
+        cachedDate: getTodayString()
+    });
+};
+
 export interface RakutenHotel {
     hotelName: string;
     hotelNo: number;
@@ -33,6 +82,13 @@ export const searchHotels = async (
     if (!RAKUTEN_APP_ID) {
         console.warn("VITE_RAKUTEN_APP_ID is not set");
         return [];
+    }
+
+    // キャッシュチェック
+    const cacheKey = getCacheKey(lat, lng, checkinDate, checkoutDate, adultNum, roomNum);
+    const cached = getFromCache(cacheKey);
+    if (cached) {
+        return cached;
     }
 
     // 検索半径(km)
@@ -130,6 +186,9 @@ export const searchHotels = async (
                 hotelLng: basicInfo.longitude
             };
         }).filter((h: any) => h).sort((a: any, b: any) => a.price - b.price);
+
+        // キャッシュに保存
+        saveToCache(cacheKey, results);
 
         // すべてのホテルを返す
         return results;

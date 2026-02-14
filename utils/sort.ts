@@ -53,7 +53,9 @@ const findBaselineResult = (
 const processResultsCore = (
     results: ExtendedResult[],
     mode: SortMode,
-    targetStationName: string
+    targetStationName: string,
+    adultCount: number = 1,
+    nightCount: number = 1
 ): ExtendedResult[] => {
     // Deep copy and reset calculated fields
     const processed = results.map(r => ({
@@ -91,12 +93,14 @@ const processResultsCore = (
             }, sameStationHotels[0]);
 
             const cospaBaselineId = baselineHotel.id;
-            const baselineCost = baselineHotel.hotel.price;
+            const baselineFare = (baselineHotel.ticketFare || baselineHotel.icFare) * 2 * adultCount * nightCount;
+            const baselineCost = baselineHotel.hotel.price + baselineFare;
             const baselineTravelTime = baselineHotel.trainTime + baselineHotel.walkTime;
 
             processed.forEach(r => {
                 let totalTravelTime = r.trainTime + r.walkTime;
-                const hotelCostWithFare = r.hotel.price + (r.icFare * 2);
+                const hotelFare = (r.ticketFare || r.icFare) * 2 * adultCount * nightCount;
+                const hotelCostWithFare = r.hotel.price + hotelFare;
 
                 if (r.id !== cospaBaselineId && totalTravelTime === baselineTravelTime) {
                     totalTravelTime += 1;
@@ -104,7 +108,7 @@ const processResultsCore = (
 
                 r.savedMoney = baselineCost - hotelCostWithFare;
                 r.extraTime = totalTravelTime - baselineTravelTime;
-                r.cospaIndex = r.extraTime > 0 ? Math.round(r.savedMoney / r.extraTime) : 0;
+                r.cospaIndex = r.savedMoney / (1 + r.extraTime / 10);
                 r.isBaseline = r.id === cospaBaselineId;
             });
         }
@@ -157,9 +161,11 @@ const sortResults = (results: ExtendedResult[], mode: SortMode): ExtendedResult[
 export const calculateAndSortResults = (
     results: ExtendedResult[],
     mode: SortMode,
-    targetStationName: string
+    targetStationName: string,
+    adultCount: number = 1,
+    nightCount: number = 1
 ): ExtendedResult[] => {
-    const processed = processResultsCore(results, mode, targetStationName);
+    const processed = processResultsCore(results, mode, targetStationName, adultCount, nightCount);
     return sortResults(processed, mode);
 };
 
@@ -170,7 +176,9 @@ export const calculateAndSortResults = (
 export const processResultsWithoutSort = (
     results: ExtendedResult[],
     mode: SortMode,
-    targetStationName: string
+    targetStationName: string,
+    adultCount: number = 1,
+    nightCount: number = 1
 ): ExtendedResult[] => {
-    return processResultsCore(results, mode, targetStationName);
+    return processResultsCore(results, mode, targetStationName, adultCount, nightCount);
 };

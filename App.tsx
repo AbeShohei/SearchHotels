@@ -57,12 +57,13 @@ const App: React.FC = () => {
   const [roomCount, setRoomCount] = useState(1);
 
   // Station selection state
-  const [stationInput, setStationInput] = useState('半蔵門');
+  const [stationInput, setStationInput] = useState('赤羽岩淵');
   const [selectedStation, setSelectedStation] = useState<GroupedStation | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
   // Filtering state
   const [onlyHighRated, setOnlyHighRated] = useState(false);
+  const [maxTimeFilter, setMaxTimeFilter] = useState<number>(90); // Default: show all (90 minutes)
 
   // Station suggestions
   const suggestions = useMemo(() => {
@@ -77,9 +78,18 @@ const App: React.FC = () => {
 
   // Filtered results
   const filteredResults = useMemo(() => {
-    if (!onlyHighRated) return results;
-    return results.filter(r => (r.hotel.reviewAverage || 0) >= 4.0);
-  }, [results, onlyHighRated]);
+    let filtered = results;
+    // Filter by rating
+    if (onlyHighRated) {
+      filtered = filtered.filter(r => (r.hotel.reviewAverage || 0) >= 4.0);
+    }
+    // Filter by travel time (train + walk)
+    filtered = filtered.filter(r => {
+      const totalTime = (r.trainTime || 0) + (r.walkTime || 0);
+      return totalTime <= maxTimeFilter;
+    });
+    return filtered;
+  }, [results, onlyHighRated, maxTimeFilter]);
 
   // Station selection handler
   const handleStationSelect = useCallback((station: GroupedStation) => {
@@ -139,6 +149,8 @@ const App: React.FC = () => {
           loading={loading}
           onlyHighRated={onlyHighRated}
           setOnlyHighRated={setOnlyHighRated}
+          maxTimeFilter={maxTimeFilter}
+          setMaxTimeFilter={setMaxTimeFilter}
         />
 
         {hasSearched && results.length === 0 && !loading && (

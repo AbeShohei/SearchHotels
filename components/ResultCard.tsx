@@ -184,10 +184,44 @@ export const ResultCard: React.FC<ResultCardProps> = ({
 
             {/* Top Right: Info (Review / Cospa / Savings) */}
             <div className="shrink-0 ml-1">
-              {sortMode === 'cospa' && result.cospaIndex ? (
+              {sortMode === 'cospa' && (result.savedMoney !== undefined || result.extraTime !== undefined) ? (
                 <div className="text-right">
-                  <div className="text-sm text-gray-400 font-bold">タイパ</div>
-                  <div className="text-lg font-bold text-green-600 leading-none">{result.cospaIndex.toLocaleString()}<span className="text-sm ml-0.5">pt</span></div>
+                  {result.isBaseline ? (
+                    <div className="text-sm font-bold text-orange-500">基準ホテル</div>
+                  ) : (
+                    (() => {
+                      const isGoodDeal = (result.savedMoney ?? 0) > 0;
+                      const isBadDeal = (result.savedMoney ?? 0) < 0;
+                      const isFarther = (result.extraTime ?? 0) > 0;
+                      const isNearer = (result.extraTime ?? 0) < 0;
+                      const textColor = isGoodDeal ? 'text-green-600' : isBadDeal ? 'text-red-600' : 'text-gray-600';
+                      const valueColor = isGoodDeal ? 'text-green-700' : isBadDeal ? 'text-red-700' : 'text-gray-700';
+
+                      return (
+                        <>
+                          <div className={`text-sm font-bold ${textColor} whitespace-nowrap`}>
+                            {isFarther && isGoodDeal && <>最寄りより{result.extraTime}分遠いけど</>}
+                            {isFarther && isBadDeal && <>最寄りより{result.extraTime}分遠いし</>}
+                            {isFarther && !isGoodDeal && !isBadDeal && <>最寄りより{result.extraTime}分遠い</>}
+                            {!isFarther && !isNearer && isGoodDeal && <>最寄りと同じ距離で</>}
+                            {!isFarther && !isNearer && isBadDeal && <>最寄りと同じ距離で</>}
+                            {!isFarther && !isNearer && !isGoodDeal && !isBadDeal && <>最寄りと同じ条件</>}
+                            {isNearer && isGoodDeal && <>最寄りより{Math.abs(result.extraTime!)}分近くて</>}
+                            {isNearer && isBadDeal && <>最寄りより{Math.abs(result.extraTime!)}分近いけど</>}
+                            {isNearer && !isGoodDeal && !isBadDeal && <>最寄りより{Math.abs(result.extraTime!)}分近い</>}
+                          </div>
+                          <div className={`text-base font-bold ${valueColor} whitespace-nowrap`}>
+                            {isGoodDeal && <>{result.savedMoney!.toLocaleString()}円お得！</>}
+                            {isBadDeal && <>{Math.abs(result.savedMoney!).toLocaleString()}円高い...</>}
+                            {!isGoodDeal && !isBadDeal && <>-</>}
+                          </div>
+                          {result.cospaIndex ? (
+                            <div className="text-xs text-gray-400">タイパ {result.cospaIndex.toFixed(2)}pt</div>
+                          ) : null}
+                        </>
+                      );
+                    })()
+                  )}
                 </div>
               ) : sortMode === 'review' && result.hotel.reviewAverage ? (
                 <div className="bg-yellow-50 px-1.5 py-0.5 rounded text-right border border-yellow-100">
