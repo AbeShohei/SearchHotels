@@ -200,15 +200,15 @@ export const ResultCard: React.FC<ResultCardProps> = ({
                       return (
                         <>
                           <div className={`text-sm font-bold ${textColor} whitespace-nowrap`}>
-                            {isFarther && isGoodDeal && <>最寄りより{result.extraTime}分遠いけど</>}
-                            {isFarther && isBadDeal && <>最寄りより{result.extraTime}分遠いし</>}
-                            {isFarther && !isGoodDeal && !isBadDeal && <>最寄りより{result.extraTime}分遠い</>}
-                            {!isFarther && !isNearer && isGoodDeal && <>最寄りと同じ距離で</>}
-                            {!isFarther && !isNearer && isBadDeal && <>最寄りと同じ距離で</>}
-                            {!isFarther && !isNearer && !isGoodDeal && !isBadDeal && <>最寄りと同じ条件</>}
-                            {isNearer && isGoodDeal && <>最寄りより{Math.abs(result.extraTime!)}分近くて</>}
-                            {isNearer && isBadDeal && <>最寄りより{Math.abs(result.extraTime!)}分近いけど</>}
-                            {isNearer && !isGoodDeal && !isBadDeal && <>最寄りより{Math.abs(result.extraTime!)}分近い</>}
+                            {isFarther && isGoodDeal && <>最寄りのホテルより{result.extraTime}分遠いけど</>}
+                            {isFarther && isBadDeal && <>最寄りのホテルより{result.extraTime}分遠いし</>}
+                            {isFarther && !isGoodDeal && !isBadDeal && <>最寄りのホテルより{result.extraTime}分遠い</>}
+                            {!isFarther && !isNearer && isGoodDeal && <>最寄りのホテルと同じ距離で</>}
+                            {!isFarther && !isNearer && isBadDeal && <>最寄りのホテルと同じ距離で</>}
+                            {!isFarther && !isNearer && !isGoodDeal && !isBadDeal && <>最寄りのホテルと同じ条件</>}
+                            {isNearer && isGoodDeal && <>最寄りのホテルより{Math.abs(result.extraTime!)}分近くて</>}
+                            {isNearer && isBadDeal && <>最寄りのホテルより{Math.abs(result.extraTime!)}分近いけど</>}
+                            {isNearer && !isGoodDeal && !isBadDeal && <>最寄りのホテルより{Math.abs(result.extraTime!)}分近い</>}
                           </div>
                           <div className={`text-base font-bold ${valueColor} whitespace-nowrap`}>
                             {isGoodDeal && <>{result.savedMoney!.toLocaleString()}円お得！</>}
