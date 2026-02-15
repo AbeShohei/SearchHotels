@@ -177,7 +177,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({
                 )}
               </div>
 
-              <h3 className="font-bold text-gray-800 text-base sm:text-lg leading-tight tracking-tight line-clamp-1">
+              <h3 className="font-bold text-gray-800 text-base sm:text-lg leading-tight tracking-tight line-clamp-2">
                 {result.hotel.hotelName}
               </h3>
             </div>
