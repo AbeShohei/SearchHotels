@@ -263,7 +263,7 @@ export const useHotelSearch = (): UseHotelSearchResult => {
                 // 結果をまとめて追加
                 targetHotels.forEach((h, i) => {
                     const hotel = { ...h, stationId: route.stationId };
-                    const totalCost = hotel.price + (icFare * 2 * adultCount * diff);
+                    const totalCost = hotel.price + (ticketFare * 2 * adultCount * diff);
                     const walkTime = walkTimes[i] || 0;
 
                     tempResults.push({
@@ -275,7 +275,7 @@ export const useHotelSearch = (): UseHotelSearchResult => {
                         lng: h.hotelLng || 0,
                         stationCountFromShinjuku: 0,
                         hotel,
-                        transportCost: icFare,
+                        transportCost: ticketFare,
                         icFare,
                         ticketFare,
                         trainTime: route.totalTime,
