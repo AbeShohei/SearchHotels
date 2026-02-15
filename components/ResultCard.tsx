@@ -156,7 +156,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({
         <div className="flex-1 p-2.5 flex flex-col justify-between min-w-0">
 
           {/* Header */}
-          <div className="flex justify-between items-start mb-1.5 gap-2">
+          <div className="relative flex justify-between items-start mb-1.5 gap-2">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5 flex-wrap mb-1 leading-none">
                 {/* Lines */}
@@ -177,13 +177,13 @@ export const ResultCard: React.FC<ResultCardProps> = ({
                 )}
               </div>
 
-              <h3 className="font-bold text-gray-800 text-base sm:text-lg leading-tight tracking-tight line-clamp-2">
+              <h3 className="font-bold text-gray-800 text-base sm:text-lg leading-tight tracking-tight line-clamp-1">
                 {result.hotel.hotelName}
               </h3>
             </div>
 
             {/* Top Right: Info (Review / Cospa / Savings) */}
-            <div className="shrink-0 ml-1">
+            <div className="absolute top-2.5 right-2.5 bg-white/90 backdrop-blur-sm rounded-lg px-2 py-1 shadow-sm ml-1">
               {sortMode === 'cospa' && (result.savedMoney !== undefined || result.extraTime !== undefined) ? (
                 <div className="text-right">
                   {result.isBaseline ? (
