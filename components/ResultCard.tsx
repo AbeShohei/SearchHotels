@@ -156,7 +156,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({
         <div className="flex-1 p-2.5 flex flex-col justify-between min-w-0">
 
           {/* Header */}
-          <div className="relative flex justify-between items-start mb-1.5 gap-2">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-1.5 gap-1.5 sm:gap-2">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5 flex-wrap mb-1 leading-none">
                 {/* Lines */}
@@ -182,10 +182,10 @@ export const ResultCard: React.FC<ResultCardProps> = ({
               </h3>
             </div>
 
-            {/* Top Right: Info (Review / Cospa / Savings) */}
-            <div className="absolute top-2.5 right-2.5 bg-white/90 backdrop-blur-sm rounded-lg px-2 py-1 shadow-sm ml-1">
+            {/* Info (Review / Cospa / Savings) */}
+            <div className="w-fit self-end sm:shrink-0 sm:max-w-[55%] rounded-lg px-2 py-1">
               {sortMode === 'cospa' && (result.savedMoney !== undefined || result.extraTime !== undefined) ? (
-                <div className="text-right">
+                <div className="text-right bg-white/90 backdrop-blur-sm rounded-lg px-1 py-0.5 shadow-sm">
                   {result.isBaseline ? (
                     <div className="text-sm font-bold text-orange-500">基準ホテル</div>
                   ) : (
@@ -199,7 +199,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({
 
                       return (
                         <>
-                          <div className={`text-sm font-bold ${textColor} whitespace-nowrap`}>
+                          <div className={`text-sm font-bold ${textColor}`}>
                             {isFarther && isGoodDeal && <>最寄りのホテルより{result.extraTime}分遠いけど</>}
                             {isFarther && isBadDeal && <>最寄りのホテルより{result.extraTime}分遠いし</>}
                             {isFarther && !isGoodDeal && !isBadDeal && <>最寄りのホテルより{result.extraTime}分遠い</>}
@@ -210,7 +210,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({
                             {isNearer && isBadDeal && <>最寄りのホテルより{Math.abs(result.extraTime!)}分近いけど</>}
                             {isNearer && !isGoodDeal && !isBadDeal && <>最寄りのホテルより{Math.abs(result.extraTime!)}分近い</>}
                           </div>
-                          <div className={`text-base font-bold ${valueColor} whitespace-nowrap`}>
+                          <div className={`text-base font-bold ${valueColor}`}>
                             {isGoodDeal && <>{result.savedMoney!.toLocaleString()}円お得！</>}
                             {isBadDeal && <>{Math.abs(result.savedMoney!).toLocaleString()}円高い...</>}
                             {!isGoodDeal && !isBadDeal && <>-</>}
