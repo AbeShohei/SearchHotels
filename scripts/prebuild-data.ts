@@ -119,11 +119,20 @@ async function getLineStations(line: typeof METRO_LINES[0], apiKey: string): Pro
 
 async function buildGroupedStations(apiKey: string): Promise<GroupedStation[]> {
     const groupedMap = new Map<string, GroupedStation>();
+    const failedLines: string[] = [];
 
     for (const line of METRO_LINES) {
         await delay(200);
         console.log(`  ${line.name}を取得中...`);
         const stations = await getLineStations(line, apiKey);
+
+        if (stations.length === 0) {
+            console.error(`  ❌ ${line.name}: 駅データが0件 — API取得に失敗した可能性があります`);
+            failedLines.push(line.name);
+            continue;
+        }
+
+        console.log(`  ✅ ${line.name}: ${stations.length}駅`);
 
         for (const station of stations) {
             const existing = groupedMap.get(station.name);
@@ -148,6 +157,13 @@ async function buildGroupedStations(apiKey: string): Promise<GroupedStation[]> {
                 });
             }
         }
+    }
+
+    if (failedLines.length > 0) {
+        console.error(`\n🚨 以下の路線のデータ取得に失敗しました: ${failedLines.join(', ')}`);
+        console.error('   既存のデータファイルを保持するため、プリビルドを中断します。');
+        console.error('   ネットワーク接続やAPIキーを確認して再実行してください。\n');
+        process.exit(1);
     }
 
     return Array.from(groupedMap.values()).sort((a, b) => a.romaji.localeCompare(b.romaji));

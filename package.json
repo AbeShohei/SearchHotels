@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "prebuild": "npx tsx scripts/prebuild-data.ts",
-    "build": "npm run prebuild && vite build",
+    "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
